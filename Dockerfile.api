@@ -1,8 +1,0 @@
-FROM python
-WORKDIR /app
-RUN pip install flask
-COPY api.py .
-VOLUME /data
-EXPOSE 5000
-CMD ["python", "api.py"]
-
