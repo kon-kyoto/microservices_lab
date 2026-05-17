@@ -1,0 +1,6 @@
+FROM python
+WORKDIR /app
+COPY logger.py .
+VOLUME /data
+CMD ["python", "logger.py"]
+
