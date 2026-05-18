@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  test-serv:
+    image: ubuntu:22.04
+    command: sh -c "while true; do echo 'test_serv1' && sleep 2; done"
+
+  test-serv2:
+    image: ubuntu:22.04
+    command: sh -c "while true; do echo 'test_serv22' && sleep 2; done"
