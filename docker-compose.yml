@@ -1,10 +1,14 @@
 version: '3.8'
 
 services:
-  test-serv:
-    image: ubuntu:22.04
-    command: sh -c "while true; do echo 'test_serv1' && sleep 2; done"
+  service1:
+    build: ./services/service1
+    container_name: service1
 
-  test-serv2:
-    image: ubuntu:22.04
-    command: sh -c "while true; do echo 'test_serv22' && sleep 2; done"
+  service2:
+    build: ./services/service2
+    container_name: service2
+    ports:
+      - "5000:5002"
+    depends_on:
+      - service1
