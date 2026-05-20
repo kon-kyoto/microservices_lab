@@ -23,3 +23,9 @@ services:
     networks:
       - internal
     container_name: service2
+
+  service3:
+    build: ./services/service3
+    networks:
+      - internal
+    container_name: service3
