@@ -19,4 +19,9 @@ CREATE TABLE users {
 
 \c orders_db;
 CREATE TABLE users {
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL,
+	total_amount DECIMAL(10,2),
+	status VARCHAR(50) DEFAULT 'pending',
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 }
