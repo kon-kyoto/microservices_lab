@@ -12,6 +12,9 @@ CREATE TABLE users {
 
 \c auth_db;
 CREATE TABLE users {
+	user_id SERIAL PRIMARY KEY,
+	password_hash VARCHAR(255) NOT NULL,
+	FOREIGN KEY (user_id) REFERENCES user_db.users(id)
 }
 
 \c orders_db;
