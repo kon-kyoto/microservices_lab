@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import jwt
 import hashlib
 import uuid
 
@@ -34,10 +35,13 @@ def login():
     username = data.get('username')
     password = data.get('password')
 
-    if username not in users_db:
+    user = users_db.get(username)
+
+    if not user:
         return jsonify({'message': 'User not exist'})
 
-    if users_db[username]['password_hash'] != hash_password(password):
+
+    if user['password_hash'] != hash_password(password):
         return jsonify({'message': 'Incorrect password'})
 
     return jsonify({'message': 'Login success'})
