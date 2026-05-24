@@ -61,6 +61,26 @@ def login():
 def verify():
     auth_header = request.headers.get('Authorization', '')
     token = auth_header.replace('Bearer ', '')
+
+    if token in tokens_blacklist:
+        return jsonify({"valid": False, "error": "Token revoked"}), 401
+
+    try:
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+
+        return jsonify({
+            "valid": True,
+            "user_id": payload['user_id'],
+            "username": payload['username']
+        })
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"valid": False, "error":"Token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"valid": False, "error":"Invalid token"}), 401
+    except:
+        return jsonify({"valid": False, "error":"Server error"}), 501
+
     return jsonify({'message': token})
 
 if __name__ == "__main__":
