@@ -57,5 +57,11 @@ def login():
 
     return jsonify({'access_token': token, 'token_type': "Bearer"})
 
+@app.route('/verify', methods=['POST'])
+def verify():
+    auth_header = request.headers.get('Authorization', '')
+    token = auth_header.replace('Bearer ', '')
+    return jsonify({'message': token})
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
