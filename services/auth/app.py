@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import jwt
 import hashlib
 import uuid
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'just_for_study_is_here'
@@ -44,7 +45,17 @@ def login():
     if user['password_hash'] != hash_password(password):
         return jsonify({'message': 'Incorrect password'})
 
-    return jsonify({'message': 'Login success'})
+    token = jwt.encode(
+            {
+                'user_id': user['user_id'],
+                'username': username,
+                'exp': datetime.utcnow() + timedelta(hours=1)
+            },
+            app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+
+    return jsonify({'access_token': token, 'token_type': "Bearer"})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
