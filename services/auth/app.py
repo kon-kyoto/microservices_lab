@@ -28,5 +28,16 @@ def register():
 
     return jsonify({'message':'User created', 'user_id': user_id}), 201
 
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if username not in users_db:
+        return jsonify({'message': 'User not exist'})
+
+    return jsonify({'message': 'Login success'})
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
