@@ -37,6 +37,9 @@ def login():
     if username not in users_db:
         return jsonify({'message': 'User not exist'})
 
+    if users_db[username]['password_hash'] != hash_password(password):
+        return jsonify({'message': 'Incorrect password'})
+
     return jsonify({'message': 'Login success'})
 
 if __name__ == "__main__":
