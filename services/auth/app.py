@@ -81,12 +81,10 @@ def verify():
     except:
         return jsonify({"valid": False, "error":"Server error"}), 501
 
-    return jsonify({'message': token})
-
 @app.route('/logout', methods=['POST'])
 def logout():
     auth_header = request.headers.get('Authorization', '')
-    token = auth_header.replase('Bearer ', '')
+    token = auth_header.replace('Bearer ', '')
     tokens_blacklist.add(token)
     return jsonify({'message': 'logout complite'})
 
