@@ -83,5 +83,12 @@ def verify():
 
     return jsonify({'message': token})
 
+@app.route('/logout', methods=['POST'])
+def logout():
+    auth_header = request.headers.get('Authorization', '')
+    token = auth_header.replase('Bearer ', '')
+    tokens_blacklist.add(token)
+    return jsonify({'message': 'logout complite'})
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
