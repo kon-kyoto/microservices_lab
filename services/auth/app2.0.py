@@ -44,7 +44,7 @@ def register():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                    "INSERT INTO users (username, email, password_hash) VALUES (%s %s %s) RETURNING id",
+                    "INSERT INTO auth_users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
                     (username, email, password_hash.decode('utf-8'))
                 )
 
