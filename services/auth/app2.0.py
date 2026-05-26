@@ -92,20 +92,28 @@ def login():
                 )
             if not bcrypt.checkpw(password.encode('utf-8'), cur.fetchone()['password_hash'].encode('utf-8')):
                 return jsonify({"message": "wrong password"}), 400
+
+        token = jwt.encode(
+                {
+                    "user_id": user_id,
+                    "username": username,
+                    "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA')))
+                },
+                os.getenv('SECRET_KEY'),
+                algorithm=os.getenv('JWT_ALGORITHM')
+            )
+
+        return jsonify({'access_token': token}), 200
+
+    except bcrypt.InvalidHash:
+        return jsonify({'message': 'invalid hash format in database'}), 500
+    except jwt.InvalidTokenError:
+        return jsonify({'message': 'token generation error'}), 500
+    except psycopg2.OperationalError as e:
+        return jsonify({'message': f'database error: {str(e)}'}), 500
     except Exception as e:
-        return jsonify({"message": e}), 501
-
-    token = jwt.encode(
-            {
-                "user_id": user_id,
-                "username": username,
-                "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA')))
-            },
-            os.getenv('SECRET_KEY'),
-            algorithm=os.getenv('JWT_ALGORITHM')
-        )
-
-    return jsonify({'access_token': token}), 200
+        app.logger.error(f"[ERROR]: {str(e)}")
+        return jsonify({'message': 'internal server error'}), 500
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5000)
