@@ -2,7 +2,9 @@ import os
 from dotenv import load_dotenv
 
 from flask import Flask, request, jsonify
+
 import bcrypt
+import jwt
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -78,11 +80,12 @@ def login():
                     "SELECT password_hash FROM auth_users WHERE user_id = (SELECT id FROM users WHERE username = %s LIMIT 1)",
                     (username,)
                 )
-            password = cur.fetchone()['password_hash']
+            if not bcrypt.checkpw(password.encode('utf-8'), cur.fetchone()['password_hash'].encode('utf-8')):
+                return jsonify({"message": "wrong password"}), 400
     except TypeError:
-        return jsonify({"message": "user not found"})
-    except Exception:
-        return jsonify({"message": "some trubles"}), 501
+        return jsonify({"message": "user not found"}), 400
+    except Exception as e:
+        return jsonify({"message": e}), 501
 
     return jsonify({'message': password}), 200
 
