@@ -72,49 +72,58 @@ def login():
     password = data.get('password')
     email = data.get('email')
 
-    if not(email or username):
-        return jsonyfi({'message': 'i need email or username'})
-
+    if not (email or username):
+        return jsonify({'message': 'i need email or username'}), 400
     try:
         with get_db_cursor() as cur:
             if username:
                 cur.execute(
-                        "SELECT id FROM users WHERE username = %s LIMIT 1",
-                        (username,)
-                    )
+                    "SELECT id FROM users WHERE username = %s LIMIT 1",
+                    (username,)
+                )
             else:
                 cur.execute(
-                        "SELECT id FROM users WHERE email = %s LIMIT 1",
-                        (email,)
-                    )
-            if not cur.fetchone():
+                    "SELECT id FROM users WHERE email = %s LIMIT 1",
+                    (email,)
+                )
+            
+            user_row = cur.fetchone()
+            if not user_row:
                 return jsonify({"message": "user not found"}), 400
-            user_id = cur.fetchone()['id']
+            
+            user_id = user_row['id']
 
             cur.execute(
-                    "SELECT password_hash FROM auth_users WHERE user_id = %s",
-                    (user_id,)
-                )
-            if not bcrypt.checkpw(password.encode('utf-8'), cur.fetchone()['password_hash'].encode('utf-8')):
+                "SELECT password_hash FROM auth_users WHERE user_id = %s",
+                (user_id,)
+            )
+            password_row = cur.fetchone()
+            if not password_row:
+                return jsonify({"message": "user has no password set"}), 400
+            
+            if not bcrypt.checkpw(password.encode('utf-8'), password_row['password_hash'].encode('utf-8')):
                 return jsonify({"message": "wrong password"}), 400
 
         token = jwt.encode(
-                {
-                    "user_id": user_id,
-                    "username": username,
-                    "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA')))
-                },
-                os.getenv('SECRET_KEY'),
-                algorithm=os.getenv('JWT_ALGORITHM')
-            )
+            {
+                "user_id": user_id,
+                "username": username,
+                "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA', '24')))
+            },
+            os.getenv('SECRET_KEY'),
+            algorithm=os.getenv('JWT_ALGORITHM')
+        )
 
         return jsonify({'access_token': token}), 200
 
-    except bcrypt.InvalidHash:
-        return jsonify({'message': 'invalid hash format in database'}), 500
-    except jwt.InvalidTokenError:
-        return jsonify({'message': 'token generation error'}), 500
+    except jwt.InvalidKeyError as e:
+        app.logger.error(f"JWT key error: {str(e)}")
+        return jsonify({'message': 'token generation error - invalid key'}), 500
+    except jwt.InvalidAlgorithmError as e:
+        app.logger.error(f"JWT algorithm error: {str(e)}")
+        return jsonify({'message': 'token generation error - invalid algorithm'}), 500
     except psycopg2.OperationalError as e:
+        app.logger.error(f"Database error: {str(e)}")
         return jsonify({'message': f'database error: {str(e)}'}), 500
     except Exception as e:
         app.logger.error(f"[ERROR]: {str(e)}")
