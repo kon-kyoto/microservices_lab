@@ -44,11 +44,14 @@ def register():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                    "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
-                    (username, email, password_hash.decode('utf-8'))
+                    "INSERT INTO users (username, email) VALUES (%s, %s) RETURNING id",
+                    (username, email)
                 )
-
             user_id = cur.fetchone()['id']
+            cur.execute(
+                   "INSERT INTO auth_users (user_id, password_hash) VALUES (%s, %s)",
+                   (user_id, password_hash.decode('utf-8'))
+                )
 
             return jsonify({'message': 'user created', 'user_id': user_id}), 201
     except psycopg2.IntegrityError:
