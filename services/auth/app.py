@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import re
 
 from flask import Flask, request, jsonify
 
@@ -41,6 +42,11 @@ def register():
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
+
+    email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
+    if not re.match(email_pattern, email):
+        return jsonify({'message':'email is not valid'})
 
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
