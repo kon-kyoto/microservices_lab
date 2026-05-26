@@ -77,10 +77,16 @@ def login():
 
     try:
         with get_db_cursor() as cur:
-            cur.execute(
-                    "SELECT id FROM users WHERE username = %s LIMIT 1",
-                    (username,)
-                )
+            if username:
+                cur.execute(
+                        "SELECT id FROM users WHERE username = %s LIMIT 1",
+                        (username,)
+                    )
+            else:
+                cur.execute(
+                        "SELECT id FROM users WHERE email = %s LIMIT 1",
+                        (email,)
+                    )
             user_id = cur.fetchone()['id']
             
             if not user_id:
