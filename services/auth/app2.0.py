@@ -41,6 +41,9 @@ def register():
 
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
+    if not username or not password or not email:
+        return jsonify({"message": "please fill in the fields: username, email, password"})
+
     try:
         with get_db_cursor() as cur:
             cur.execute(
@@ -56,6 +59,8 @@ def register():
             return jsonify({'message': 'user created', 'user_id': user_id}), 201
     except psycopg2.IntegrityError:
         return jsonify({"error": "username or email is already exist"}), 400
+    except Exception:
+        return jsonify({"message": "some trubles"}), 501
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -74,8 +79,10 @@ def login():
                     (username,)
                 )
             password = cur.fetchone()['password_hash']
-    except Exception as e:
-        return jsonify({"message": e}), 501
+    except TypeError:
+        return jsonify({"message": "user not found"})
+    except Exception:
+        return jsonify({"message": "some trubles"}), 501
 
     return jsonify({'message': password}), 200
 
