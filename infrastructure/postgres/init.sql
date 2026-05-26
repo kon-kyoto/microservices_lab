@@ -1,27 +1,23 @@
-CREATE DATABASE auth_db;
-CREATE DATABASE users_db;
-CREATE DATABASE orders_db;
+CREATE DATABASE microservices_db;
 
-\c users_db;
-CREATE TABLE users {
+\c microservices_db;
+CREATE TABLE users (
 	id SERIAL PRIMARY KEY,
 	username VARCHAR(100) UNIQUE NOT NULL,
 	email VARCHAR(255) UNIQUE NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-}
+);
 
-\c auth_db;
-CREATE TABLE users {
-	user_id SERIAL PRIMARY KEY,
-	password_hash VARCHAR(255) NOT NULL,
-	FOREIGN KEY (user_id) REFERENCES user_db.users(id)
-}
+CREATE TABLE auth_users (
+	auth_id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	password_hash VARCHAR(255) NOT NULL
+);
 
-\c orders_db;
-CREATE TABLE users {
+CREATE TABLE orders (
 	id SERIAL PRIMARY KEY,
-	user_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	total_amount DECIMAL(10,2),
 	status VARCHAR(50) DEFAULT 'pending',
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-}
+);
