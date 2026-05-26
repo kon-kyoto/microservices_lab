@@ -68,5 +68,16 @@ def get_user(find_id):
         app.logger.error(f"[ERROR] {str(e)}")
         return jsonify({'message':'server error'}), 500
 
+@app.route('/user_change/<find_id>', methods=['PUT'])
+def user_change(find_id):
+    token = request.header.get('Authorization').replace('Bearer ', '')
+    jwt_data = jwt.decode(
+            token,
+            os.getenv('SECRET_KEY'),
+            os.getenv('JWT_ALGORITHM')
+        )
+    if jwt_data['user_name'] != find_id:
+        find_id = user_id
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5001')
