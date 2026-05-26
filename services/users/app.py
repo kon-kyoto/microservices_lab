@@ -58,7 +58,7 @@ def get_user(find_id):
         return jsonify({'username': data_row['username'], 'email': data_row['email']}), 200
 
     except jwt.ExpiredSignatureError:
-        return jsonify({'message', 'token is dead'}), 400
+        return jsonify({'message': 'token is dead'}), 400
     except jwt.InvalidTokenError:
         return jsonify({'message': 'token is invalid'}), 400
 
