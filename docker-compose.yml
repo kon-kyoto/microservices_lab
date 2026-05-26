@@ -33,5 +33,17 @@ services:
     networks:
       - backend
 
+  users:
+    build: ./services/users
+    container_name: users_service
+    env_file: .env
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
 volumes:
   postgres_data:
