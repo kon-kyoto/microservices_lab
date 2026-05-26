@@ -57,5 +57,27 @@ def register():
     except psycopg2.IntegrityError:
         return jsonify({"error": "username or email is already exist"}), 400
 
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+
+    if not(email or username):
+        return jsonyfi({'message': 'i need email or username'})
+
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT password_hash FROM auth_users WHERE user_id = (SELECT id FROM users WHERE username = %s LIMIT 1)",
+                    (username,)
+                )
+            password = cur.fetchone()['password_hash']
+    except Exception as e:
+        return jsonify({"message": e}), 501
+
+    return jsonify({'message': password}), 200
+
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5000)
