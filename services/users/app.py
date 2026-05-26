@@ -36,7 +36,7 @@ def get_db_cursor():
 
 @app.route('/user/<find_id>', methods=['GET'])
 def get_user(find_id):
-    token = request.header.get("Authorization").replace("Bearer ", "")
+    token = request.headers.get("Authorization").replace("Bearer ", "")
 
     try:
         jwt_data = jwt.decode(
@@ -70,14 +70,41 @@ def get_user(find_id):
 
 @app.route('/user_change/<find_id>', methods=['PUT'])
 def user_change(find_id):
-    token = request.header.get('Authorization').replace('Bearer ', '')
-    jwt_data = jwt.decode(
-            token,
-            os.getenv('SECRET_KEY'),
-            os.getenv('JWT_ALGORITHM')
-        )
-    if jwt_data['user_name'] != find_id:
-        find_id = user_id
+    token = request.headers.get('Authorization').replace('Bearer ', '')
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+
+    try:
+        jwt_data = jwt.decode(
+                token,
+                os.getenv('SECRET_KEY'),
+                os.getenv('JWT_ALGORITHM')
+            )
+        if jwt_data['user_id'] != find_id:
+            return jsonify({"message":"it is not u man", "u": jwt_data['user_id']})
+
+        with get_db_cursor() as cur:
+            if email:
+                cur.execute(
+                        "UPDATE users SET username = %s WHERE id = %s",
+                        (username, find_id)
+                    )
+            if username:
+                cur.execute(
+                        "UPDATE users SET username = %s WHERE id = %s",
+                        (username, find_id)
+                    )
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'token is dead'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'message': 'token is invalid'}), 401
+    except Exception as e:
+        app.logger.error(f"[ERROR] {str(e)}")
+        return jsonify({'message':'server error'}), 500
+
+
+    return jsonify({'message': 'ok'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5001')
