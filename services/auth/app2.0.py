@@ -87,10 +87,9 @@ def login():
                         "SELECT id FROM users WHERE email = %s LIMIT 1",
                         (email,)
                     )
-            user_id = cur.fetchone()['id']
-            
-            if not user_id:
+            if not cur.fetchone():
                 return jsonify({"message": "user not found"}), 400
+            user_id = cur.fetchone()['id']
 
             cur.execute(
                     "SELECT password_hash FROM auth_users WHERE user_id = %s",
