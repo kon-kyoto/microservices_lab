@@ -4,6 +4,6 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app2.0.py .
-CMD ["python", "app2.0.py"]
+COPY app.py .
+CMD ["python", "app.py"]
 
