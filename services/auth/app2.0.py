@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 
 import bcrypt
 import jwt
+from datetime import datetime, timedelta
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -77,17 +78,34 @@ def login():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                    "SELECT password_hash FROM auth_users WHERE user_id = (SELECT id FROM users WHERE username = %s LIMIT 1)",
+                    "SELECT id FROM users WHERE username = %s LIMIT 1",
                     (username,)
+                )
+            user_id = cur.fetchone()['id']
+            
+            if not user_id:
+                return jsonify({"message": "user not found"}), 400
+
+            cur.execute(
+                    "SELECT password_hash FROM auth_users WHERE user_id = %s",
+                    (user_id,)
                 )
             if not bcrypt.checkpw(password.encode('utf-8'), cur.fetchone()['password_hash'].encode('utf-8')):
                 return jsonify({"message": "wrong password"}), 400
-    except TypeError:
-        return jsonify({"message": "user not found"}), 400
     except Exception as e:
         return jsonify({"message": e}), 501
 
-    return jsonify({'message': password}), 200
+    token = jwt.encode(
+            {
+                "user_id": user_id,
+                "username": username,
+                "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA')))
+            },
+            os.getenv('SECRET_KEY'),
+            algorithm=os.getenv('JWT_ALGORITHM')
+        )
+
+    return jsonify({'access_token': token}), 200
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5000)
