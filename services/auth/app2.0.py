@@ -13,10 +13,10 @@ app = Flask(__name__)
 
 def get_db_connection():
     return psycopg2.connect(
-            host=os.getenv('DB_HOST'),
-            database=os.getenv('AUTH_DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('POSTGRES_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('POSTGRES_USER'),
+            password=os.getenv('POSTGRES_PASSWORD'),
             cursor_factory=RealDictCursor
         )
 
@@ -44,7 +44,7 @@ def register():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                    "INSERT INTO auth_users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
+                    "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
                     (username, email, password_hash.decode('utf-8'))
                 )
 
