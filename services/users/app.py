@@ -14,15 +14,20 @@ from contextlib import contextmanager
 app = Flask(__name__)
 load_dotenv()
 
+JWT_CONFIG = {
+    'algorithm': 'HS256',
+    'secret_key': os.getenv('SECRET_KEY'),
+    'expires_hours': int(os.getenv('TIMEDELTA', '24'))
+}
+
 def token_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             token = request.headers.get('Authorization').replace('Bearer ','')
-            jwt_data = jwt.decode(token, os.getenv('SECRET_KEY'), algorithms=[os.getenv('JWT_ALGORITHM')])
+            jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm'])
 
             g.user_id = jwt_data.get('user_id')
-            g.username = jwt_data.get('username')
 
             return func(*args, **kwargs)
 
