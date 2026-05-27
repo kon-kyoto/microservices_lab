@@ -146,6 +146,26 @@ def login():
         app.logger.error(f"[ERROR]: {str(e)}")
         return jsonify({'message': 'internal server error'}), 500
 
+@app.route('verify', methods=['POST'])
+def verify():
+    try:
+        auth_head = request.headers.get('Authorization').replace('Bearer ','')
+        if not auth_head:
+            return jsonify({'message': 'lost header'})
+        token = auth_head.replace('Bearer ', '')
+
+        jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
+
+       return jsonify({'user_id': jwt_data['user_id']})
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'token is dead'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'message': 'token is invalid'}), 401
+    except Exception as e:
+        app.logger.error(f"[ERROR] {str(e)}")
+        return jsonify({'message':'server error'}), 500
+
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5001)
 
