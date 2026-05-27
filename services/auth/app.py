@@ -107,10 +107,10 @@ def login():
                 )
             username = cur.fetchone()['username']
 
-    if redis_client.incr(f"username:{username}") > 10:
+    if redis_client.incr(f"login_rate:{request.remote_addr}") > 10:
         return jsonify({'message': 'too much try'}), 401
 
-    redis_client.setex(f"username:{username}", os.getenv('STOP_LOGIN'), "rate")
+    redis_client.expire(f"login_rate:{request.remote_addr}", os.getenv('STOP_LOGIN'))
 
     try:
         with get_db_cursor() as cur:
