@@ -156,7 +156,7 @@ def verify():
 
         jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
 
-       return jsonify({'user_id': jwt_data['user_id']})
+        return jsonify({'user_id': jwt_data.get('user_id')})
 
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'token is dead'}), 401
