@@ -78,7 +78,7 @@ def login():
     password = data.get('password')
     email = data.get('email')
 
-    if not (email or username):
+    if not email and not username):
         return jsonify({'message': 'i need email or username'}), 400
     try:
         with get_db_cursor() as cur:
