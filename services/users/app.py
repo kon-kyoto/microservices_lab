@@ -118,11 +118,11 @@ def user_delete(find_id):
 
     with get_db_cursor() as cur:
         cur.execute(
-                "DELETE FROM users WHERE id = %s",
+                "DELETE FROM auth_users WHERE user_id = %s",
                 (find_id,)
             )
         cur.execute(
-                "DELETE FROM auth_users WHERE user_id = %s",
+                "DELETE FROM users WHERE id = %s",
                 (find_id,)
             )
 
@@ -141,4 +141,4 @@ def users_list():
     return jsonify(result), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port='5001')
+    app.run(host='0.0.0.0', port=5001)
