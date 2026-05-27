@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
+from functools import wraps
 
 from flask import Flask, request, jsonify, g
-from functools import wraps
+import requests
 
 import jwt
 from datetime import datetime, timedelta
@@ -23,25 +24,37 @@ JWT_CONFIG = {
 def token_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'message': 'missing authorization header'}), 401
+        token = auth_header.replace('Bearer ', '')
+
         try:
-            auth_head = request.headers.get('Authorization').replace('Bearer ','')
-            if not auth_head:
-                return jsonify({'message': 'lost header'})
-            token = auth_head.replace('Bearer ', '')
+            response = requests.post(
+                    'http://auth_service:5001/verify',
+                    headers={'Authorization': f'Bearer {token}'}
+                )
+            
+            if response.status_code != 200:
+                return jsonify({'message': 'invalid token'}), 401
 
-            jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
-
-            g.user_id = jwt_data.get('user_id')
+            user_data = response.json()
+            g.user_id = user_data.get('user_id')
 
             return func(*args, **kwargs)
 
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'token is dead'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'token is invalid'}), 401
+        except requests.exceptions.ConnectionError:
+            app.logger.error("Cannot connect to auth_service")
+            return jsonify({'message': 'authentication service unavailable'}), 503
+        except requests.exceptions.Timeout:
+            app.logger.error("Auth service timeout")
+            return jsonify({'message': 'authentication service timeout'}), 504
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Auth service request error: {str(e)}")
+            return jsonify({'message': 'authentication failed'}), 401
         except Exception as e:
-            app.logger.error(f"[ERROR] {str(e)}")
-            return jsonify({'message':'server error'}), 500
+            app.logger.error(f"Unexpected error in token_reader: {str(e)}")
+            return jsonify({'message': 'internal server error'}), 500
 
     return wrapper
 
