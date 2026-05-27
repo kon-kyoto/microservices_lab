@@ -146,7 +146,7 @@ def login():
         app.logger.error(f"[ERROR]: {str(e)}")
         return jsonify({'message': 'internal server error'}), 500
 
-@app.route('verify', methods=['POST'])
+@app.route('/verify', methods=['POST'])
 def verify():
     try:
         auth_head = request.headers.get('Authorization').replace('Bearer ','')
