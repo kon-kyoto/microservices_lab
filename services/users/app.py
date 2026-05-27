@@ -58,7 +58,7 @@ def get_db_cursor():
     finally:
         conn.close()
 
-@app.route('/user/<find_id>', methods=['GET'])
+@app.route('/users/<find_id>', methods=['GET'])
 @token_reader
 def get_user(find_id):
     user_id = g.get('user_id')
@@ -78,9 +78,9 @@ def get_user(find_id):
 
     return jsonify({'username': data_row.get('username'), 'email': data_row.get('email')}), 200
 
-@app.route('/user_change', methods=['PUT'])
+@app.route('/users/<find_id>', methods=['PUT'])
 @token_reader
-def user_change():
+def user_change(find_id):
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
