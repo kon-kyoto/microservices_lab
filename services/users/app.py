@@ -94,41 +94,26 @@ def get_user(find_id):
 
 
 @app.route('/user_change', methods=['PUT'])
+@token_reader
 def user_change():
-    token = request.headers.get('Authorization').replace('Bearer ', '')
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
+    user_id = g.get('user_id')
 
-    try:
-        jwt_data = jwt.decode(
-                token,
-                os.getenv('SECRET_KEY'),
-                os.getenv('JWT_ALGORITHM')
-            )
-        user_id = jwt_data['user_id']
+    with get_db_cursor() as cur:
+        if email:
+            cur.execute(
+                    "UPDATE users SET username = %s WHERE id = %s",
+                    (username, user_id)
+                )
+        if username:
+            cur.execute(
+                    "UPDATE users SET username = %s WHERE id = %s",
+                    (username, user_id)
+                )
 
-        with get_db_cursor() as cur:
-            if email:
-                cur.execute(
-                        "UPDATE users SET username = %s WHERE id = %s",
-                        (username, user_id)
-                    )
-            if username:
-                cur.execute(
-                        "UPDATE users SET username = %s WHERE id = %s",
-                        (username, user_id)
-                    )
-    except jwt.ExpiredSignatureError:
-        return jsonify({'message': 'token is dead'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'message': 'token is invalid'}), 401
-    except Exception as e:
-        app.logger.error(f"[ERROR] {str(e)}")
-        return jsonify({'message':'server error'}), 500
-
-
-    return jsonify({'message': 'ok'})
+    return jsonify({'message': f'ur account info has been changed'})
 
 @app.route('/users', methods=['GET'])
 @token_reader
@@ -136,8 +121,6 @@ def users_list():
     user_id = g.get('user_id')
     username = g.get('username')
 
-    if not user_id or not username:
-        return jsonify({"message": "who are u"}), 401
     with get_db_cursor() as cur:
         cur.execute("SELECT * FROM users")
         result = cur.fetchall()
