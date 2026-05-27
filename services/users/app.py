@@ -24,7 +24,11 @@ def token_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            token = request.headers.get('Authorization').replace('Bearer ','')
+            auth_head = request.headers.get('Authorization').replace('Bearer ','')
+            if not auth_head:
+                return jsonify({'message': 'lost header'})
+            token = auth_head.replace('Bearer ', '')
+
             jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
 
             g.user_id = jwt_data.get('user_id')
