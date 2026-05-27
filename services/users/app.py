@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
+from functools import wraps
 
 import jwt
 from datetime import datetime, timedelta
@@ -12,6 +13,29 @@ from contextlib import contextmanager
 
 app = Flask(__name__)
 load_dotenv()
+
+def token_reader(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            token = request.headers.get('Authorization').replace('Bearer ','')
+            jwt_data = jwt.decode(token, os.getenv('SECRET_KEY'), algorithms=[os.getenv('JWT_ALGORITHM')])
+
+            g.user_id = jwt_data.get('user_id')
+            g.username = jwt_data.get('username')
+
+            return func(*args, **kwargs)
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'token is dead'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'token is invalid'}), 401
+        except Exception as e:
+            app.logger.error(f"[ERROR] {str(e)}")
+            return jsonify({'message':'server error'}), 500
+
+    return wrapper
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -107,20 +131,18 @@ def user_change():
     return jsonify({'message': 'ok'})
 
 @app.route('/users', methods=['GET'])
+@token_reader
 def users_list():
-    token = request.headers.get("Authorization").replace("Bearer ", "")
-    jwt_data = jwt.decode(
-            token,
-            os.getenv('SECRET_KEY'),
-            os.getenv('JWT_ALGORITHM')
-        )
-    with get_db_cursor() as cur:
-        cur.execute(
-                "SELECT * FROM users"
-            )
-        result = cur.fetchone()
+    user_id = g.get('user_id')
+    username = g.get('username')
 
-    return jsonify(result)
+    if not user_id or not username:
+        return jsonify({"message": "who are u"}), 401
+    with get_db_cursor() as cur:
+        cur.execute("SELECT * FROM users")
+        result = cur.fetchall()
+
+    return jsonify(result), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5001')
