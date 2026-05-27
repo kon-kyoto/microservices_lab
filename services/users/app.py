@@ -68,7 +68,7 @@ def get_db_cursor():
 def get_user(find_id):
     user_id = g.get('user_id')
 
-    if user_id != find_id:
+    if str(user_id) != str(find_id):
         return jsonify({'message':'permission denied'})
 
     
@@ -90,9 +90,8 @@ def user_change(find_id):
     username = data.get('username')
     email = data.get('email')
     user_id = g.get('user_id')
-    find_id = int(find_id)
 
-    if user_id != find_id:
+    if str(user_id) != str(find_id):
         return jsonify({'message': 'permission denied'})
 
     with get_db_cursor() as cur:
@@ -113,16 +112,18 @@ def user_change(find_id):
 @token_reader
 def user_delete(find_id):
     user_id = g.get('user_id')
-    find_id = int(find_id)
+    
+    if str(user_id) != str(find_id):
+        return jsonify({'message': 'permission denied'})
 
     with get_db_cursor() as cur:
         cur.execute(
                 "DELETE FROM users WHERE id = %s",
-                (user_id,)
+                (find_id,)
             )
         cur.execute(
                 "DELETE FROM auth_users WHERE user_id = %s",
-                (user_id,)
+                (find_id,)
             )
 
     return jsonify({'message': 'SUCCESS u delete this account'})
