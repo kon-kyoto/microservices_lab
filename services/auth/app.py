@@ -15,6 +15,12 @@ from contextlib import contextmanager
 load_dotenv()
 app = Flask(__name__)
 
+JWT_CONFIG = {
+    'algorithm': 'HS256',
+    'secret_key': os.getenv('SECRET_KEY'),
+    'expires_hours': int(os.getenv('TIMEDELTA', '24'))
+}
+
 def get_db_connection():
     return psycopg2.connect(
             host=os.getenv('POSTGRES_HOST'),
@@ -113,11 +119,10 @@ def login():
         token = jwt.encode(
             {
                 "user_id": user_id,
-                "username": username,
-                "exp": datetime.utcnow() + timedelta(hours=int(os.getenv('TIMEDELTA', '24')))
+                "exp": datetime.utcnow() + timedelta(hours=JWT_CONFIG['expires_hours'])
             },
-            os.getenv('SECRET_KEY'),
-            algorithm=os.getenv('JWT_ALGORITHM')
+            JWT_CONFIG['secret_key'],
+            algorithm=JWT_CONFIG['algorithm']
         )
 
         return jsonify({'access_token': token}), 200
