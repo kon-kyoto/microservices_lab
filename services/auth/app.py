@@ -96,8 +96,14 @@ def login():
     password = data.get('password')
     email = data.get('email')
 
+    if redis_client.scard(f"username:{username}") > 10:
+        return jsonify({'message': 'too much try'}), 401
+
+    redis_client.setex(f"username:{username}", os.getenv('STOP_LOGIN'), "try")
+
     if not email and not username:
         return jsonify({'message': 'i need email or username'}), 400
+
     try:
         with get_db_cursor() as cur:
             if username:
