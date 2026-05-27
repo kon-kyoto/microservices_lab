@@ -107,10 +107,10 @@ def login():
                 )
             username = cur.fetchone()['username']
 
-    key = f"login_rate:{request.remote_addr}"
-    att = redis_client.incr(key)
+    rate_key = f"login_rate:{request.remote_addr}"
+    att = redis_client.incr(rate_key)
     if att == 1:
-        redis_client.expire(key, int(os.getenv('STOP_LOGIN', 300)))
+        redis_client.expire(rate_key, int(os.getenv('STOP_LOGIN', 300)))
     if att > 10:
         return jsonify({'message': 'too much try'}), 401
 
@@ -150,6 +150,7 @@ def login():
             algorithm=JWT_CONFIG['algorithm']
         )
 
+        redis_client.delete(rate_key)
         return jsonify({'access_token': token}), 200
 
     except jwt.InvalidKeyError as e:
