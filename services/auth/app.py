@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import re
 
 from flask import Flask, request, jsonify
+import redis
 
 import bcrypt
 import jwt
@@ -14,6 +15,11 @@ from contextlib import contextmanager
 
 load_dotenv()
 app = Flask(__name__)
+redis_client = redis.Redis(
+        host=os.getenv('REDIS_HOST'),
+        port=int(os.getenv('REDIS_PORT')),
+        decode_responses=True 
+    )
 
 JWT_CONFIG = {
     'algorithm': 'HS256',
@@ -145,6 +151,27 @@ def login():
     except Exception as e:
         app.logger.error(f"[ERROR]: {str(e)}")
         return jsonify({'message': 'internal server error'}), 500
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    auth_head = request.headers.get('Authorization')
+    if not auth_head:
+        return jsonify({'message': 'unknown user'})
+    token = auth.replace('Bearer ', '')
+
+    try:
+        jwt_data = decode(token, JWT_CONFIG['secret_key'], algorithms = [JWT_CONFIG['algorithm']])
+        exp_timestamp = jwt_data['exp']
+        current_time = datetime.utcnow().timestamp()
+        tt1 = int(exp_timestamp - current_time)
+
+        if tt1 > 0:
+            redis_client.setex(f"blacklist:{token}", tt1, "revoked")
+
+        return jsonify({'message': 'logout complite'})
+    except:
+        return jsonify({'message': 'invalid token'})
+
 
 @app.route('/verify', methods=['POST'])
 def verify():
