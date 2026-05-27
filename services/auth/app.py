@@ -181,14 +181,17 @@ def verify():
             return jsonify({'message': 'lost header'})
         token = auth_head.replace('Bearer ', '')
 
+        if redis_client.exists(f"blacklist:{token}"):
+            return jsonify({'valid': False, 'error': 'token revoked'}), 401
+
         jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
 
-        return jsonify({'user_id': jwt_data.get('user_id')})
+        return jsonify({'valid': True, 'user_id': jwt_data.get('user_id')})
 
     except jwt.ExpiredSignatureError:
-        return jsonify({'message': 'token is dead'}), 401
+        return jsonify({'valid': False, 'message': 'token is dead'}), 401
     except jwt.InvalidTokenError:
-        return jsonify({'message': 'token is invalid'}), 401
+        return jsonify({'valid': False, 'message': 'token is invalid'}), 401
     except Exception as e:
         app.logger.error(f"[ERROR] {str(e)}")
         return jsonify({'message':'server error'}), 500
