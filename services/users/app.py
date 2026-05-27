@@ -85,6 +85,10 @@ def user_change(find_id):
     username = data.get('username')
     email = data.get('email')
     user_id = g.get('user_id')
+    find_id = int(find_id)
+
+    if user_id != find_id:
+        return jsonify({'message': 'permission denied'})
 
     with get_db_cursor() as cur:
         if email:
@@ -99,6 +103,24 @@ def user_change(find_id):
                 )
 
     return jsonify({'message': f'ur account info has been changed'})
+
+@app.route('users/<find_id>', methods=['DELETE'])
+@token_reader
+def user_delete:
+    user_id = g.get('user_id')
+    find_id = int(find_id)
+
+    with get_db_cursor() as cur:
+        cur.execute(
+                "DELETE FROM users WHERE id = %s",
+                (user_id,)
+            )
+        cur.execute(
+                "DELETE FROM auth_users WHERE user_id = %s",
+                (user_id,)
+            )
+
+    return jsonify({'message': 'SUCCESS u delete this account'})
 
 @app.route('/users', methods=['GET'])
 @token_reader
