@@ -96,13 +96,21 @@ def login():
     password = data.get('password')
     email = data.get('email')
 
-    if redis_client.scard(f"username:{username}") > 10:
-        return jsonify({'message': 'too much try'}), 401
-
-    redis_client.setex(f"username:{username}", os.getenv('STOP_LOGIN'), "try")
-
     if not email and not username:
         return jsonify({'message': 'i need email or username'}), 400
+
+    if not username:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT username FROM users WHERE email = %s",
+                    (email,)
+                )
+            username = cur.fetchone()['username']
+
+    if redis_client.incr(f"username:{username}") > 10:
+        return jsonify({'message': 'too much try'}), 401
+
+    redis_client.setex(f"username:{username}", os.getenv('STOP_LOGIN'), "rate")
 
     try:
         with get_db_cursor() as cur:
@@ -110,11 +118,6 @@ def login():
                 cur.execute(
                     "SELECT id FROM users WHERE username = %s LIMIT 1",
                     (username,)
-                )
-            else:
-                cur.execute(
-                    "SELECT id FROM users WHERE email = %s LIMIT 1",
-                    (email,)
                 )
             
             user_row = cur.fetchone()
@@ -146,14 +149,14 @@ def login():
         return jsonify({'access_token': token}), 200
 
     except jwt.InvalidKeyError as e:
-        app.logger.error(f"JWT key error: {str(e)}")
+        app.logger.error(f"JWT key error {str(e)}")
         return jsonify({'message': 'token generation error - invalid key'}), 500
     except jwt.InvalidAlgorithmError as e:
         app.logger.error(f"JWT algorithm error: {str(e)}")
         return jsonify({'message': 'token generation error - invalid algorithm'}), 500
     except psycopg2.OperationalError as e:
         app.logger.error(f"Database error: {str(e)}")
-        return jsonify({'message': f'database error: {str(e)}'}), 500
+        return jsonify({'message': f'database error'}), 500
     except Exception as e:
         app.logger.error(f"[ERROR]: {str(e)}")
         return jsonify({'message': 'internal server error'}), 500
@@ -163,10 +166,10 @@ def logout():
     auth_head = request.headers.get('Authorization')
     if not auth_head:
         return jsonify({'message': 'unknown user'})
-    token = auth.replace('Bearer ', '')
+    token = auth_head.replace('Bearer ', '')
 
     try:
-        jwt_data = decode(token, JWT_CONFIG['secret_key'], algorithms = [JWT_CONFIG['algorithm']])
+        jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms = [JWT_CONFIG['algorithm']])
         exp_timestamp = jwt_data['exp']
         current_time = datetime.utcnow().timestamp()
         tt1 = int(exp_timestamp - current_time)
@@ -182,7 +185,7 @@ def logout():
 @app.route('/verify', methods=['POST'])
 def verify():
     try:
-        auth_head = request.headers.get('Authorization').replace('Bearer ','')
+        auth_head = request.headers.get('Authorization')
         if not auth_head:
             return jsonify({'message': 'lost header'})
         token = auth_head.replace('Bearer ', '')
