@@ -59,39 +59,24 @@ def get_db_cursor():
         conn.close()
 
 @app.route('/user/<find_id>', methods=['GET'])
+@token_reader
 def get_user(find_id):
-    token = request.headers.get("Authorization").replace("Bearer ", "")
+    user_id = g.get('user_id')
 
-    try:
-        jwt_data = jwt.decode(
-                token,
-                os.getenv('SECRET_KEY'), 
-                os.getenv('JWT_ALGORITHM')
+    if user_id != find_id:
+        return jsonify({'message':'permission denied'})
+
+    
+    with get_db_cursor() as cur:
+        cur.execute(
+                "SELECT * FROM users WHERE id = %s",
+                (find_id,)
             )
+        data_row = cur.fetchone()
+        if not data_row:
+            return jsonify({'message': 'user not found'}), 404
 
-        if jwt_data['user_id'] != find_id:
-            return jsonify({'message':'permission denied'})
-
-        
-        with get_db_cursor() as cur:
-            cur.execute(
-                    "SELECT * FROM users WHERE id = %s",
-                    (find_id,)
-                )
-            data_row = cur.fetchone()
-            if not data_row:
-                return jsonify({'message': 'user not found'}), 404
-
-        return jsonify({'username': data_row['username'], 'email': data_row['email']}), 200
-
-    except jwt.ExpiredSignatureError:
-        return jsonify({'message': 'token is dead'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'message': 'token is invalid'}), 401
-    except Exception as e:
-        app.logger.error(f"[ERROR] {str(e)}")
-        return jsonify({'message':'server error'}), 500
-
+    return jsonify({'username': data_row.get('username'), 'email': data_row.get('email')}), 200
 
 @app.route('/user_change', methods=['PUT'])
 @token_reader
