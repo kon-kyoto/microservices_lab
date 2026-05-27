@@ -68,8 +68,8 @@ def get_user(find_id):
         app.logger.error(f"[ERROR] {str(e)}")
         return jsonify({'message':'server error'}), 500
 
-@app.route('/user_change/<find_id>', methods=['PUT'])
-def user_change(find_id):
+@app.route('/user_change', methods=['PUT'])
+def user_change():
     token = request.headers.get('Authorization').replace('Bearer ', '')
     data = request.get_json()
     username = data.get('username')
@@ -81,19 +81,18 @@ def user_change(find_id):
                 os.getenv('SECRET_KEY'),
                 os.getenv('JWT_ALGORITHM')
             )
-        if jwt_data['user_id'] != int(find_id):
-            return jsonify({"message":"it is not u man", "u": jwt_data['user_id']})
+        user_id = jwt_data['user_id']
 
         with get_db_cursor() as cur:
             if email:
                 cur.execute(
                         "UPDATE users SET username = %s WHERE id = %s",
-                        (username, find_id)
+                        (username, user_id)
                     )
             if username:
                 cur.execute(
                         "UPDATE users SET username = %s WHERE id = %s",
-                        (username, find_id)
+                        (username, user_id)
                     )
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'token is dead'}), 401
