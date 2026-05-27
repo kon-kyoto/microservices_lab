@@ -45,7 +45,7 @@ def get_user(find_id):
                 os.getenv('JWT_ALGORITHM')
             )
 
-        if jwt_data['user_id'] != find_id:
+        if jwt_data['user_id'] != int(find_id):
             return jsonify({'message':'permission denied'})
 
         
@@ -81,7 +81,7 @@ def user_change(find_id):
                 os.getenv('SECRET_KEY'),
                 os.getenv('JWT_ALGORITHM')
             )
-        if jwt_data['user_id'] != find_id:
+        if jwt_data['user_id'] != int(find_id):
             return jsonify({"message":"it is not u man", "u": jwt_data['user_id']})
 
         with get_db_cursor() as cur:
