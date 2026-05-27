@@ -107,7 +107,11 @@ def login():
                 )
             username = cur.fetchone()['username']
 
-    if redis_client.incr(f"login_rate:{request.remote_addr}") > 10:
+    key = f"login_rate:{request.remote_addr}"
+    att = redis_client.incr(key)
+    if att == 1:
+        redis_client.expire(key, int(os.getenv('STOP_LOGIN', 300)))
+    if att > 10:
         return jsonify({'message': 'too much try'}), 401
 
     redis_client.expire(f"login_rate:{request.remote_addr}", os.getenv('STOP_LOGIN'))
