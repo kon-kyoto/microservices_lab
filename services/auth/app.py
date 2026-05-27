@@ -43,15 +43,15 @@ def register():
     password = data.get('password')
     email = data.get('email')
 
+    if not username or not password or not email:
+        return jsonify({"message": "please fill in the fields: username, email, password"})
+
     email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
     if not re.match(email_pattern, email):
         return jsonify({'message':'email is not valid'})
 
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
-    if not username or not password or not email:
-        return jsonify({"message": "please fill in the fields: username, email, password"})
 
     try:
         with get_db_cursor() as cur:
@@ -78,7 +78,7 @@ def login():
     password = data.get('password')
     email = data.get('email')
 
-    if not email and not username):
+    if not email and not username:
         return jsonify({'message': 'i need email or username'}), 400
     try:
         with get_db_cursor() as cur:
