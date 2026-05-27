@@ -25,7 +25,7 @@ def token_reader(func):
     def wrapper(*args, **kwargs):
         try:
             token = request.headers.get('Authorization').replace('Bearer ','')
-            jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm'])
+            jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
 
             g.user_id = jwt_data.get('user_id')
 
@@ -109,9 +109,9 @@ def user_change(find_id):
 
     return jsonify({'message': f'ur account info has been changed'})
 
-@app.route('users/<find_id>', methods=['DELETE'])
+@app.route('/users/<find_id>', methods=['DELETE'])
 @token_reader
-def user_delete:
+def user_delete(find_id):
     user_id = g.get('user_id')
     find_id = int(find_id)
 
