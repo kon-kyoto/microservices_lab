@@ -45,7 +45,7 @@ def get_user(find_id):
                 os.getenv('JWT_ALGORITHM')
             )
 
-        if jwt_data['user_id'] != int(find_id):
+        if jwt_data['user_id'] != find_id:
             return jsonify({'message':'permission denied'})
 
         
@@ -67,6 +67,7 @@ def get_user(find_id):
     except Exception as e:
         app.logger.error(f"[ERROR] {str(e)}")
         return jsonify({'message':'server error'}), 500
+
 
 @app.route('/user_change', methods=['PUT'])
 def user_change():
@@ -104,6 +105,22 @@ def user_change():
 
 
     return jsonify({'message': 'ok'})
+
+@app.route('/users', methods=['GET'])
+def users_list():
+    token = request.headers.get("Authorization").replace("Bearer ", "")
+    jwt_data = jwt.decode(
+            token,
+            os.getenv('SECRET_KEY'),
+            os.getenv('JWT_ALGORITHM')
+        )
+    with get_db_cursor() as cur:
+        cur.execute(
+                "SELECT * FROM users"
+            )
+        result = cur.fetchone()
+
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5001')
