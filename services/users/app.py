@@ -91,6 +91,9 @@ def get_user(find_id):
 @token_reader
 def user_change(find_id):
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'lost data'})
+
     username = data.get('username')
     email = data.get('email')
     user_id = g.get('user_id')

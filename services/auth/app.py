@@ -45,6 +45,9 @@ def get_db_cursor():
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'lost data'})
+    
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
@@ -80,6 +83,9 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'lost data'})
+
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
