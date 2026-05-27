@@ -89,8 +89,8 @@ def user_change():
     with get_db_cursor() as cur:
         if email:
             cur.execute(
-                    "UPDATE users SET username = %s WHERE id = %s",
-                    (username, user_id)
+                    "UPDATE users SET email = %s WHERE id = %s",
+                    (email, user_id)
                 )
         if username:
             cur.execute(
