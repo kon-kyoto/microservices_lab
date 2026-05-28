@@ -129,6 +129,30 @@ def get_users_orders(user_id):
     except Exception:
         return jsonify({'message': 'my fail'}), 500
 
+@app.route('/orders/<order_id>', methods=['PUT'])
+@check_token
+def change_order_status(order_id):
+    data = request.get_json()
+    status = data.get('status')
+    if not status:
+        return jsonify({'message': 'no new status'})
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT * FROM orders WHERE id = %s",
+                    (order_id,)
+                )
+            data_row = fetchone()
+            if g.user_id != data_row.get('user_id'):
+                return jsonify({'message': 'permission denied'}), 401
+            cur.execute(
+                    "INSERT INTO orders (status) WHERE id = %s VALUES (%s)",
+                    (order_id, status)
+                )
+            return jsonify({'message': 'SUCCESS'}), 200
+    except Exception:
+        return jsonify({'message': 'my fail'}), 500
+
 
 
 if __name__ == '__main__':
