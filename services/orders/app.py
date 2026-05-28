@@ -153,6 +153,25 @@ def change_order_status(order_id):
     except Exception:
         return jsonify({'message': 'my fail'}), 500
 
+@app.route('/orders/<order_id', methods=['DELETE'])
+@check_token
+def delete_order(order_id):
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT * FROM orders WHERE id = %s",
+                    (order_id,)
+                )
+            if g.user_id != cur.fetchone()['user_id']:
+                return jsonify({'message': 'permission denied'})
+            cur.execute(
+                    "DELETE FROM from orders WHERE id = %s",
+                    (order_id,)
+                )
+            return jsonifi({'message', 'delete success'})
+    except Exception:
+        return jsonify({'message': 'my fail'}), 500
+
 
 
 if __name__ == '__main__':
