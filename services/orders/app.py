@@ -67,3 +67,34 @@ def check_token(func):
             return jsonify({'message': 'internal server error'}), 500
     return wrapper
 
+app.route('/orders', methods=['POST'])
+def create_order():
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'no json'})
+    status = 'pending'
+    total_amount = data.get('total_amount')
+    
+    try:
+        if not total_amount or int(total_amount) < 1:
+            return jsonify({'message': 'total amount can be int and bigger/equale 1'}), 401
+    except TypeError:
+        return jsonify({'message': 'total amount type error'}), 401
+
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "INSERT INTO orders (user_id, total_amount, status) VALUES (%s, %s, %s) RETURNING id",
+                    (g.user_id, total_amount, status)
+                )
+            order_id = cur.fetchone()['id']
+
+        return jsonify({'message': 'SUCCESS', 'order_id': order_id})
+    except psycopg2.IntegrityError:
+        return jsonify({"error": "username or email is already exist"}), 400
+    except Exception:
+        return jsonify({"message": "some trubles"}), 501
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5003)
