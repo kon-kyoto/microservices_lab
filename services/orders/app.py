@@ -21,6 +21,7 @@ def get_db_connection():
             cursor_factory=RealDictCursor
         )
 
+@contextmanager
 def get_db_cursor():
     conn = get_db_connection()
     try:
@@ -146,8 +147,8 @@ def change_order_status(order_id):
             if g.user_id != data_row.get('user_id'):
                 return jsonify({'message': 'permission denied'}), 401
             cur.execute(
-                    "INSERT INTO orders (status) WHERE id = %s VALUES (%s)",
-                    (order_id, status)
+                    "UPDATE orders SET status = %s WHERE id = %s",
+                    (status, order_id)
                 )
             return jsonify({'message': 'SUCCESS'}), 200
     except Exception:
