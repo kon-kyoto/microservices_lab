@@ -154,7 +154,7 @@ def change_order_status(order_id):
     except Exception:
         return jsonify({'message': 'my fail'}), 500
 
-@app.route('/orders/<order_id', methods=['DELETE'])
+@app.route('/orders/<order_id>', methods=['DELETE'])
 @check_token
 def delete_order(order_id):
     try:
