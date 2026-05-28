@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from functools import wraps
 
 from flask import Flask, request, jsonify, g
-from datetime import datetime
+import requests
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -14,10 +14,10 @@ load_dotenv()
 
 def get_db_connection():
     return psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST')
-            database=os.getenv('DB_NAME')
-            user=os.getenv('POSTGRES_USER')
-            password=os.getenv('POSTGRES_PASSWORD')
+            host=os.getenv('POSTGRES_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('POSTGRES_USER'),
+            password=os.getenv('POSTGRES_PASSWORD'),
             cursor_factory=RealDictCursor
         )
 
@@ -107,7 +107,7 @@ def get_order(order_id):
                 )
             data_row = cur.fetchone()
             if not data_row:
-                return jsonify({'message': 'order id not found'}), 200
+                return jsonify({'message': 'order id not found'}), 404
 
             return jsonify(data_row), 200
     except Exception:
@@ -124,7 +124,7 @@ def get_users_orders(user_id):
                 )
             data_rows = cur.fetchall()
         if not data_rows:
-            return jsonify({'message': 'orders not found'}), 200
+            return jsonify({'message': 'orders not found'}), 404
         return jsonify(data_rows), 200
     except Exception:
         return jsonify({'message': 'my fail'}), 500
@@ -142,7 +142,7 @@ def change_order_status(order_id):
                     "SELECT * FROM orders WHERE id = %s",
                     (order_id,)
                 )
-            data_row = fetchone()
+            data_row = cur.fetchone()
             if g.user_id != data_row.get('user_id'):
                 return jsonify({'message': 'permission denied'}), 401
             cur.execute(
@@ -165,10 +165,10 @@ def delete_order(order_id):
             if g.user_id != cur.fetchone()['user_id']:
                 return jsonify({'message': 'permission denied'})
             cur.execute(
-                    "DELETE FROM from orders WHERE id = %s",
+                    "DELETE FROM orders WHERE id = %s",
                     (order_id,)
                 )
-            return jsonifi({'message', 'delete success'})
+            return jsonify({'message': 'delete success'}), 200
     except Exception:
         return jsonify({'message': 'my fail'}), 500
 
