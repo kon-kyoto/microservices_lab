@@ -21,7 +21,7 @@ JWT_CONFIG = {
     'expires_hours': int(os.getenv('TIMEDELTA', '24'))
 }
 
-def token_reader(func):
+def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
@@ -53,7 +53,7 @@ def token_reader(func):
             app.logger.error(f"Auth service request error: {str(e)}")
             return jsonify({'message': 'authentication failed'}), 401
         except Exception as e:
-            app.logger.error(f"Unexpected error in token_reader: {str(e)}")
+            app.logger.error(f"Unexpected error in check_token: {str(e)}")
             return jsonify({'message': 'internal server error'}), 500
 
     return wrapper
@@ -81,7 +81,7 @@ def get_db_cursor():
         conn.close()
 
 @app.route('/users/<find_id>', methods=['GET'])
-@token_reader
+@check_token
 def get_user(find_id):
     user_id = g.get('user_id')
 
@@ -101,7 +101,7 @@ def get_user(find_id):
     return jsonify({'username': data_row.get('username'), 'email': data_row.get('email')}), 200
 
 @app.route('/users/<find_id>', methods=['PUT'])
-@token_reader
+@check_token
 def user_change(find_id):
     data = request.get_json()
     if not data:
@@ -129,7 +129,7 @@ def user_change(find_id):
     return jsonify({'message': f'ur account info has been changed'})
 
 @app.route('/users/<find_id>', methods=['DELETE'])
-@token_reader
+@check_token
 def user_delete(find_id):
     user_id = g.get('user_id')
     
@@ -149,7 +149,7 @@ def user_delete(find_id):
     return jsonify({'message': 'SUCCESS u delete this account'})
 
 @app.route('/users', methods=['GET'])
-@token_reader
+@check_token
 def users_list():
     user_id = g.get('user_id')
     username = g.get('username')
