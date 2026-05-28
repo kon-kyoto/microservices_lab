@@ -107,11 +107,28 @@ def get_order(order_id):
                 )
             data_row = cur.fetchone()
             if not data_row:
-                return jsonify({'message': 'order id not found'})
+                return jsonify({'message': 'order id not found'}), 200
 
-            return jsonify(data_row)
+            return jsonify(data_row), 200
     except Exception:
         return jsonify({'message': 'my fail'}), 500
+
+@app.route('/orders/user/<user_id>', methods=['GET'])
+@check_token
+def get_users_orders(user_id):
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT * FROM orders WHERE user_id = %s",
+                    (user_id,)
+                )
+            data_rows = cur.fetchall()
+        if not data_rows:
+            return jsonify({'message': 'orders not found'}), 200
+        return jsonify(data_rows), 200
+    except Exception:
+        return jsonify({'message': 'my fail'}), 500
+
 
 
 if __name__ == '__main__':
