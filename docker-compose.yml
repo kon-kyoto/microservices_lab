@@ -54,5 +54,18 @@ services:
     networks:
       - backend
 
+  orders:
+    build: ./services/orders 
+    container_name: orders_service
+    env_file: .env
+    ports:
+      - "5003:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
 volumes:
   postgres_data:
+  redis_data:
