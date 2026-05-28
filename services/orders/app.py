@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from functools import wraps
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from datetime import datetime
 
 import psycopg2
@@ -67,7 +67,8 @@ def check_token(func):
             return jsonify({'message': 'internal server error'}), 500
     return wrapper
 
-app.route('/orders', methods=['POST'])
+@app.route('/orders', methods=['POST'])
+@check_token
 def create_order():
     data = request.get_json()
     if not data:
@@ -94,6 +95,23 @@ def create_order():
         return jsonify({"error": "username or email is already exist"}), 400
     except Exception:
         return jsonify({"message": "some trubles"}), 501
+
+@app.route('/orders/<order_id>', methods=['GET'])
+@check_token
+def get_order(order_id):
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                    "SELECT * FROM orders WHERE id = %s",
+                    (order_id,)
+                )
+            data_row = cur.fetchone()
+            if not data_row:
+                return jsonify({'message': 'order id not found'})
+
+            return jsonify(data_row)
+    except Exception:
+        return jsonify({'message': 'my fail'}), 500
 
 
 if __name__ == '__main__':
