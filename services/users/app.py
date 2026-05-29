@@ -31,7 +31,7 @@ def check_token(func):
         try:
             response = requests.post(
                     'http://auth_service:5001/verify',
-                    headers={'Authorization': f'Bearer {token}'}
+                    cookies={'access_token':token} 
                 )
             
             if response.status_code != 200:
