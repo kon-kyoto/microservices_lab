@@ -39,6 +39,7 @@ def check_token(func):
         token = request.cookies.get('access token')
         if not token:
             return jsonify({'message', 'missing cookies'}), 401
+        token = request.cookie.get('access_token')
         
         try:
             response = requests.post(
@@ -160,7 +161,7 @@ def delete_order(order_id):
         with get_db_cursor() as cur:
             cur.execute(
                     "SELECT * FROM orders WHERE id = %s",
-                    (order_id,)
+                   (order_id,)
                 )
             if g.user_id != cur.fetchone()['user_id']:
                 return jsonify({'message': 'permission denied'})

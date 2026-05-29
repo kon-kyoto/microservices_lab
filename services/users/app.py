@@ -27,6 +27,7 @@ def check_token(func):
         token = request.cookies.get('access token')
         if not token:
             return jsonify({'message': 'missing token'}), 401
+        token = request.cookie.get('access_token')
 
         try:
             response = requests.post(
