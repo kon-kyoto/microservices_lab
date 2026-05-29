@@ -36,10 +36,9 @@ def get_db_cursor():
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        auth_head = request.headers.get('Authorization')
-        if not auth_head:
-            return jsonify({'message', 'empty auth header'})
-        token = auth_head.replace('Bearer ', '')
+        token = request.cookies.get('access token')
+        if not token:
+            return jsonify({'message', 'missing cookies'})
         
         try:
             response = requests.post(

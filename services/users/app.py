@@ -24,10 +24,8 @@ JWT_CONFIG = {
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({'message': 'missing authorization header'}), 401
-        token = auth_header.replace('Bearer ', '')
+        token = request.cookies.get('access token')
+            return jsonify({'message': 'missing token'}), 401
 
         try:
             response = requests.post(
@@ -158,7 +156,6 @@ def users_list():
         cur.execute("SELECT * FROM users")
 
     return jsonify(result), 200
-        redis_client.ping()
 
 @app.route('/health', methods=['GET'])
 def health():

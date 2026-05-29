@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import re
 
-from flask import Flask, request, make_responce, jsonify
+from flask import Flask, request, make_response, jsonify
 import redis
 
 import bcrypt
@@ -114,8 +114,6 @@ def login():
     if att > 10:
         return jsonify({'message': 'too much try'}), 401
 
-    redis_client.expire(f"login_rate:{request.remote_addr}", int(os.getenv('STOP_LOGIN')))
-
     try:
         with get_db_cursor() as cur:
             if username:
@@ -152,8 +150,8 @@ def login():
 
         redis_client.delete(rate_key)
 
-        responce = make_responce(jsonify({'message': 'login successful'}))
-        responce.set_cookie(
+        response = make_response(jsonify({'message': 'login successful'}))
+        response.set_cookie(
                 'access_token',
                 token,
                 httponly=True,
@@ -161,7 +159,7 @@ def login():
                 samesite='Lax',
                 max_age=24*60*60
             )
-        return responce, 200
+        return response, 200
 
     except jwt.InvalidKeyError as e:
         app.logger.error(f"JWT key error {str(e)}")
@@ -200,7 +198,7 @@ def logout():
 @app.route('/verify', methods=['POST'])
 def verify():
     try:
-        token = request.cookie.get('access_token')
+        token = request.cookies.get('access_token')
 
         if not token:
             return jsonify({'message': 'lost token'}), 401
@@ -225,10 +223,10 @@ def health():
     try:
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
-        redis_client.ping()
+            redis_client.ping()
         return jsonify({'status': 'healthy'}), 200
-    except:
-        return jsonify({'status': 'unhealthy'}), 503
+    except Exception as e:
+        return jsonify({'status': 'unhealthy', 'message': str(e)}), 503
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5001)
