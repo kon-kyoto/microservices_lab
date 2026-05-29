@@ -36,15 +36,14 @@ def get_db_cursor():
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        auth_head = request.headers.get('Authorization')
-        if not auth_head:
+        token = request.cookie.get('access_token')
+        if not token:
             return jsonify({'message', 'empty auth header'})
-        token = auth_head.replace('Bearer ', '')
         
         try:
             response = requests.post(
                     'http://auth_service:5001/verify',
-                    headers = {'Authorization': f'Bearer {token}'},
+                    cookie={'access_token': token}
                 )
             if response.status_code != 200:
                 return ({'message': 'invalid token'}), 401

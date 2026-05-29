@@ -24,15 +24,14 @@ JWT_CONFIG = {
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({'message': 'missing authorization header'}), 401
-        token = auth_header.replace('Bearer ', '')
+        token = request.cookie.get('access_token')
+        if not token:
+            return jsonify({'message': 'missing token in cookie'}), 401
 
         try:
             response = requests.post(
                     'http://auth_service:5001/verify',
-                    headers={'Authorization': f'Bearer {token}'}
+                    cookie={'access_token': token} 
                 )
             
             if response.status_code != 200:
