@@ -38,7 +38,7 @@ def check_token(func):
     def wrapper(*args, **kwargs):
         token = request.cookies.get('access token')
         if not token:
-            return jsonify({'message', 'missing cookies'})
+            return jsonify({'message', 'missing cookies'}), 401
         
         try:
             response = requests.post(
