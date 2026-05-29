@@ -20,7 +20,6 @@
 # │   │   │                   #   POST /register - создание пользователя
 # │   │   │                   #   POST /login - выдача JWT токена
 # │   │   │                   #   POST /verify - проверка токена
-# │   │   │                   #   POST /refresh - обновление токена
 # │   │   └── requirements.txt # Flask/JWT/cryptography/psycopg2-binary/redis
 
 # │   ├── users/              # Сервис управления пользователями
