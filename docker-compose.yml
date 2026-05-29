@@ -17,7 +17,7 @@ services:
       - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 10
 
@@ -29,6 +29,11 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s 
+      timeout: 5s 
+      retries: 10
 
   auth:
     build: ./services/auth
@@ -41,6 +46,12 @@ services:
         condition: service_healthy
     networks:
       - backend
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5001/health']
+      interval: 30s 
+      timeout: 5s 
+      retries: 10
+      start_period: 10s
 
   users:
     build: ./services/users
@@ -51,8 +62,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      auth:
+        condition: service_healthy
     networks:
       - backend
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5002/health']
+      interval: 30s 
+      timeout: 5s 
+      retries: 10
+      start_period: 10s
 
   orders:
     build: ./services/orders 
@@ -63,8 +82,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      auth:
+        condition: service_healthy
     networks:
       - backend
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
+      interval: 30s 
+      timeout: 5s 
+      retries: 10
+      start_period: 10s
 
 volumes:
   postgres_data:
