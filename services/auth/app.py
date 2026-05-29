@@ -86,7 +86,7 @@ def register():
     except Exception:
         return jsonify({"message": "some trubles"}), 501
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 def login():
     data = request.get_json()
     if not data:
