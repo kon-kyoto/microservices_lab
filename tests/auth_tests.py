@@ -1,6 +1,5 @@
 import random 
 import string
-import pytest
 import requests
 
 class User:
@@ -36,16 +35,17 @@ class User:
         """ Generate random password """
         return ''.join(random.choice(self.letters) for _ in range(random.randint(8, 16)))
 
-users = []
 def gen_users(length=10):
+    users = []
     for _ in range(length):
         users.append(User().random_user())
+    
+    return users
 
-gen_users()
 
-@pytest.mark.parametrize("user", users)
 def test_register(user):
-    data = { 'username': user.username,
+    data = {
+        'username': user.username,
         'email': user.email,
         'password': user.password
     }
@@ -54,11 +54,11 @@ def test_register(user):
         headers={'Content-Type': 'application/json'},
         json=data
     )
-    assert response.status_code == 201
+    return response.status_code == 201
 
-@pytest.mark.parametrize("user", users)
 def test_login(user):
-    data = { 'username': user.username,
+    data = {
+        'username': user.username,
         'password': user.password
     }
     response = requests.post(
@@ -69,9 +69,8 @@ def test_login(user):
     
     user.set_token(response.cookies.get('access_token'))
 
-    assert response.status_code == 200
+    return response.status_code == 200
 
-@pytest.mark.parametrize("user", users)
 def test_verify(user):
     data = {
             'access_token': user.token
@@ -81,7 +80,7 @@ def test_verify(user):
             cookies=data
         )
 
-    assert response.status_code == 200
+    return response.status_code == 200
 
 
 if __name__ == "__main__":
