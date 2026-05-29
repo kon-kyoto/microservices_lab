@@ -9,6 +9,7 @@ class User:
         self.email = 'default'
         self.password = 'default'
         self.letters = string.ascii_lowercase + string.digits
+        self.token = ''
     
     def random_user(self):
         """ Generate random user """
@@ -16,6 +17,9 @@ class User:
         self.email = self._gen_email()
         self.password = self._gen_password()
         return self
+
+    def set_token(self, token):
+        self.token = token
 
     def _gen_username(self):
         """ Generate random username """
@@ -41,8 +45,7 @@ gen_users()
 
 @pytest.mark.parametrize("user", users)
 def test_register(user):
-    data = {
-        'username': user.username,
+    data = { 'username': user.username,
         'email': user.email,
         'password': user.password
     }
@@ -52,6 +55,29 @@ def test_register(user):
         json=data
     )
     assert response.status_code == 201
+
+@pytest.mark.parametrize("user", users)
+def test_login(user):
+    data = { 'username': user.username,
+        'email': user.email,
+        'password': user.password
+    }
+    response = requests.post(
+        'http://localhost:5001/register',
+        headers={'Content-Type': 'application/json'},
+        json=data
+    )
+    
+    user.set_token(response.cookies.get('access_token'))
+
+    assert response.status_code == 200
+
+@pytest.mark.parametrize("user", users)
+def test_verify(user):
+    data = {
+            'access_token': user.token
+        }
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
