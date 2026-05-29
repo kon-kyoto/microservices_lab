@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import re
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, make_responce, jsonify
 import redis
 
 import bcrypt
@@ -151,7 +151,17 @@ def login():
         )
 
         redis_client.delete(rate_key)
-        return jsonify({'access_token': token}), 200
+
+        responce = make_responce(jsonify({'message': 'login successful'}))
+        responce.set_cookie(
+                'access_token',
+                token,
+                httponly=True,
+                secure=False,
+                samesite='Lax',
+                max_age=24*60*60
+            )
+        return responce, 200
 
     except jwt.InvalidKeyError as e:
         app.logger.error(f"JWT key error {str(e)}")
@@ -190,10 +200,10 @@ def logout():
 @app.route('/verify', methods=['POST'])
 def verify():
     try:
-        auth_head = request.headers.get('Authorization')
-        if not auth_head:
-            return jsonify({'message': 'lost header'})
-        token = auth_head.replace('Bearer ', '')
+        token = request.cookie.get('access_token')
+
+        if not token:
+            return jsonify({'message': 'lost token'}), 401
 
         if redis_client.exists(f"blacklist:{token}"):
             return jsonify({'valid': False, 'error': 'token revoked'}), 401
