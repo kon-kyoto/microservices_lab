@@ -1,10 +1,12 @@
 PY = python3
-SOURCE = tests/auth_tests.py
+SOURCE = tests/tests.py
 VENV = test_venv
 
-.PHONY: test_all clear
+.PHONY: test clear
 
-test_all:
+start: test clear
+
+test:
 	@if [ ! -d $(VENV) ]; then \
 		$(PY) -m venv $(VENV); \
 		./$(VENV)/bin/pip install --upgrade pip; \
