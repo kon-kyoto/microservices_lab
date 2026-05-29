@@ -178,7 +178,7 @@ def health():
     try:
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
-        return jsonify({'status': 'healthy'}). 200
+        return jsonify({'status': 'healthy'}), 200
     except:
         return jsonify({'status': 'unhealthy'}), 503
 
