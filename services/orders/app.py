@@ -173,6 +173,14 @@ def delete_order(order_id):
     except Exception:
         return jsonify({'message': 'my fail'}), 500
 
+@app.route('/health', methods=['GET'])
+def health():
+    try:
+        with get_db_cursor() as cur:
+            cur.execute("SELECT 1")
+        return jsonify({'status': 'healthy'}). 200
+    except:
+        return jsonify({'status': 'unhealthy'}), 503
 
 
 if __name__ == '__main__':

@@ -210,6 +210,16 @@ def verify():
         app.logger.error(f"[ERROR] {str(e)}")
         return jsonify({'message':'server error'}), 500
 
+@app.route('/health', methods=['GET'])
+def health():
+    try:
+        with get_db_cursor() as cur:
+            cur.execute("SELECT 1")
+        redis_client.ping()
+        return jsonify({'status': 'healthy'}). 200
+    except:
+        return jsonify({'status': 'unhealthy'}), 503
+
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",  port = 5001)
 

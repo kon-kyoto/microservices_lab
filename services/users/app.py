@@ -156,9 +156,9 @@ def users_list():
 
     with get_db_cursor() as cur:
         cur.execute("SELECT * FROM users")
-        result = cur.fetchall()
 
     return jsonify(result), 200
+        redis_client.ping()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002)
