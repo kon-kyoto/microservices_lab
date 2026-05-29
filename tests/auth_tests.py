@@ -3,20 +3,6 @@ import string
 import pytest
 import requests
 
-def test_register():
-    for user in users:
-        data = {
-                'username': user.username,
-                'email': user.email,
-                'password': user.password
-            }
-        response = requests.post(
-                'http://localhost:5001/requests',
-                headers={'Content-Type': 'application/json'},
-                json=data
-            )
-        assert response.status_code == 200
-
 class User:
     def __init__(self):
         self.username = 'default'
@@ -47,7 +33,25 @@ class User:
         return ''.join(random.choice(self.letters) for _ in range(random.randint(8, 16)))
 
 users = []
-
 def gen_users(length=10):
     for _ in range(length):
         users.append(User().random_user())
+
+gen_users()
+
+@pytest.mark.parametrize("user", users)
+def test_register(user):
+    data = {
+        'username': user.username,
+        'email': user.email,
+        'password': user.password
+    }
+    response = requests.post(
+        'http://localhost:5001/register',
+        headers={'Content-Type': 'application/json'},
+        json=data
+    )
+    assert response.status_code == 201
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
