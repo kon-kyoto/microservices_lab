@@ -1,5 +1,21 @@
 import random 
 import string
+import pytest
+import requests
+
+def test_register():
+    for user in users:
+        data = {
+                'username': user.username,
+                'email': user.email,
+                'password': user.password
+            }
+        response = requests.post(
+                'http://localhost:5001/requests',
+                headers={'Content-Type': 'application/json'},
+                json=data
+            )
+        assert response.status_code == 200
 
 class User:
     def __init__(self):
