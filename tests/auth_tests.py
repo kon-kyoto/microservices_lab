@@ -59,11 +59,10 @@ def test_register(user):
 @pytest.mark.parametrize("user", users)
 def test_login(user):
     data = { 'username': user.username,
-        'email': user.email,
         'password': user.password
     }
     response = requests.post(
-        'http://localhost:5001/register',
+        'http://localhost:5001/login',
         headers={'Content-Type': 'application/json'},
         json=data
     )
@@ -77,6 +76,12 @@ def test_verify(user):
     data = {
             'access_token': user.token
         }
+    response = requests.post(
+            'http://localhost:5001/verify',
+            cookies=data
+        )
+
+    assert response.status_code == 200
 
 
 if __name__ == "__main__":
