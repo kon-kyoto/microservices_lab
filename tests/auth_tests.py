@@ -43,7 +43,7 @@ def gen_users(length=10):
     return users
 
 
-def test_register(user):
+def register_user(user):
     data = {
         'username': user.username,
         'email': user.email,
@@ -56,7 +56,7 @@ def test_register(user):
     )
     return response.status_code == 201
 
-def test_login(user):
+def login_user(user):
     data = {
         'username': user.username,
         'password': user.password
@@ -71,7 +71,7 @@ def test_login(user):
 
     return response.status_code == 200
 
-def test_verify(user):
+def verify_user(user):
     data = {
             'access_token': user.token
         }
