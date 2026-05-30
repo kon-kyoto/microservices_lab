@@ -17,9 +17,9 @@ services:
       - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 2
 
   redis:
     image: redis:7-alpine
@@ -33,9 +33,9 @@ services:
       backend:
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s 
+      interval: 10s 
       timeout: 5s 
-      retries: 10
+      retries: 2
 
   auth:
     build: ./services/auth
@@ -52,9 +52,9 @@ services:
       - backend
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5001/health']
-      interval: 30s 
+      interval: 10s 
       timeout: 5s 
-      retries: 10
+      retries: 2
 
   users:
     build: ./services/users
@@ -69,9 +69,9 @@ services:
       - backend
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5002/health']
-      interval: 30s 
+      interval: 10s 
       timeout: 5s 
-      retries: 10
+      retries: 2
 
   orders:
     build: ./services/orders 
@@ -86,9 +86,9 @@ services:
       - backend
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
-      interval: 30s 
+      interval: 10s 
       timeout: 5s 
-      retries: 10
+      retries: 2
 
 volumes:
   postgres_data:
