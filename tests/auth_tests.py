@@ -9,6 +9,7 @@ class User:
         self.password = 'default'
         self.letters = string.ascii_lowercase + string.digits
         self.token = ''
+        self.user_id
     
     def random_user(self):
         """ Generate random user """
@@ -19,6 +20,9 @@ class User:
 
     def set_token(self, token):
         self.token = token
+
+    def set_user_id(self, user_id):
+        self.user_id = user_id
 
     def _gen_username(self):
         """ Generate random username """
@@ -79,6 +83,8 @@ def verify_user(user):
             'http://localhost:5001/verify',
             cookies=data
         )
+
+    user.set_user_id(response.get('user_id'))
 
     return response.status_code == 200
 
