@@ -24,10 +24,9 @@ JWT_CONFIG = {
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        token = request.cookies.get('access token')
+        token = request.cookies.get('access_token')
         if not token:
             return jsonify({'message': 'missing token'}), 401
-        token = request.cookie.get('access_token')
 
         try:
             response = requests.post(
@@ -126,7 +125,7 @@ def user_change(find_id):
                     (username, user_id)
                 )
 
-    return jsonify({'message': f'ur account info has been changed'})
+    return jsonify({'message': f'ur account info has been changed'}), 200
 
 @app.route('/users/<find_id>', methods=['DELETE'])
 @check_token

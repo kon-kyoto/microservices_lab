@@ -1,6 +1,7 @@
 import random 
 import string
 import requests
+import pytest
 
 class User:
     def __init__(self):
@@ -9,7 +10,7 @@ class User:
         self.password = 'default'
         self.letters = string.ascii_lowercase + string.digits
         self.token = ''
-        self.user_id
+        self.user_id = None
     
     def random_user(self):
         """ Generate random user """
@@ -46,7 +47,6 @@ def gen_users(length=10):
     
     return users
 
-
 def register_user(user):
     data = {
         'username': user.username,
@@ -72,22 +72,18 @@ def login_user(user):
     )
     
     user.set_token(response.cookies.get('access_token'))
-
     return response.status_code == 200
 
 def verify_user(user):
-    data = {
-            'access_token': user.token
-        }
+    cookies = {
+        'access_token': user.token
+    }
     response = requests.post(
-            'http://localhost:5001/verify',
-            cookies=data
-        )
-
-    user.set_user_id(response.get('user_id'))
-
+        'http://localhost:5001/verify',
+        cookies=cookies
+    )
+    
+    if response.status_code == 200:
+        user.set_user_id(response.json().get('user_id'))
+    
     return response.status_code == 200
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

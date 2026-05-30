@@ -1,7 +1,6 @@
-
 import requests
 import random
-import strins:
+import string
 
 letters = string.ascii_lowercase + string.digits
 
@@ -47,8 +46,14 @@ def user_change_email(user):
         user.email = new_email 
     return response.status_code == 200
 
-def users_list():
-    response = requests.get('http://localhost:5002/users')
+def users_list(user):
+    cookie = {
+        'access_token': user.token
+    }
+    response = requests.get(
+            'http://localhost:5002/users',
+            cookies=cookie
+        )
     return response.status_code == 200
 
 def user_delete(user):
