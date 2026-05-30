@@ -9,6 +9,25 @@ networks:
 
 services:
 
+  nginx:
+    build:
+      context: .
+      dockerfile: ./gateway/Dockerfile
+    container_name: nginx_gateway
+    ports:
+      - "80:80"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      auth:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+      orders:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:15-alpine
     container_name: postgres_db
@@ -48,8 +67,6 @@ services:
     build: ./services/auth
     container_name: auth_service
     env_file: .env
-    ports:
-      - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,19 +116,6 @@ services:
       interval: 10s 
       timeout: 5s 
       retries: 2
-
-  frontend:
-    build: ./frontend 
-    container_name: front 
-    ports:
-      - "80:80"
-    networks:
-      frontend:
-    depends_on:
-      users:
-        condition: service_healthy
-      orders:
-        condition: service_healthy
 
 volumes:
   postgres_data:
