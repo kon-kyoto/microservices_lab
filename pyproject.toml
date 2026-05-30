@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microservices-lab"
+version = "1.0.0"
+description = "Microservices application with Auth, Users, and Orders services"
+requires-python = ">=3.12"
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | test_venv
+)/
+'''
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--disable-warnings",
+]
+filterwarnings = [
+    "ignore::pytest.PytestReturnNotNoneWarning",
+]
+timeout = 300
