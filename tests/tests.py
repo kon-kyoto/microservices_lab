@@ -5,15 +5,30 @@ from users_tests import user_info, user_change_username, user_change_email, user
 users = gen_users()
 
 @pytest.mark.parametrize("user", users)
-def tests(user):
-    assert register_user(user)
-    assert login_user(user)
-    assert verify_user(user)
-    assert users_list(user)
-    assert user_info(user)
-    assert user_change_username(user)
-    assert user_change_email(user)
-    assert user_delete(user)
+class TestUserFlow:
+    def test_register(self, user):
+        assert register_user(user)
+    
+    def test_login(self, user):
+        assert login_user(user)
+    
+    def test_verify(self, user):
+        assert verify_user(user)
+    
+    def test_users_list(self, user):
+        assert users_list(user)
+    
+    def test_user_info(self, user):
+        assert user_info(user)
+    
+    def test_change_username(self, user):
+        assert user_change_username(user)
+    
+    def test_change_email(self, user):
+        assert user_change_email(user)
+    
+    def test_delete(self, user):
+        assert user_delete(user)
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
