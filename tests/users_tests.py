@@ -46,3 +46,17 @@ def user_change_email(user):
     if response.status_code == 200:
         user.email = new_email 
     return response.status_code == 200
+
+def users_list():
+    response = requests.get('http://localhost:5002/users')
+    return response.status_code == 200
+
+def user_delete(user):
+    cookie = {
+        'access_token': user.token
+    }
+    response = requests.delete(
+        f'http://localhost:5002/users/{user.user_id}',
+        cookies=cookie
+    )
+    return response.status_code == 200
