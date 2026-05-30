@@ -1,7 +1,7 @@
 # microservices lab
 
+## Structure:
 ```bash
-# microservices-lab/
 # ├── docker-compose.yml      # Оркестрация всех сервисов: связи, сети, тома, переменные окружения
 # ├── .env                    # Переменные окружения (пароли БД, секреты, порты)
 
@@ -54,3 +54,18 @@
 #                             #   - rate limiting счетчики
 #                             #   - временные данные (подтверждение email)
 ```
+
+## Status codes:
+| Code | Name | When to use |
+|------|------|----------------|
+| 200 | OK | Successful GET, PUT, DELETE |
+| 201 | Created | Successful POST (resource created) |
+| 204 | No Content | Successful DELETE (no response body) |
+| 400 | Bad Request | Data validation error (invalid JSON, data type) |
+| 401 | Unauthorized | No token or token is invalid |
+| 403 | Forbidden | Token exists but insufficient rights (not own resource) |
+| 404 | Not Found | Resource not found |
+| 409 | Conflict | User/email already exists |
+| 429 | Too Many Requests | Login attempt limit exceeded |
+| 500 | Internal Server Error | Unexpected server error |
+| 503 | Service Unavailable | Dependent service is unavailable |
