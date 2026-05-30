@@ -1,6 +1,7 @@
 # microservices lab
 
 ## Structure:
+
 ```bash
 # ├── docker-compose.yml      # Оркестрация всех сервисов: связи, сети, тома, переменные окружения
 # ├── .env                    # Переменные окружения (пароли БД, секреты, порты)
@@ -56,6 +57,7 @@
 ```
 
 ## Status codes:
+
 | Code | Name | When to use |
 |------|------|----------------|
 | 200 | OK | Successful GET, PUT, DELETE |
@@ -69,3 +71,24 @@
 | 429 | Too Many Requests | Login attempt limit exceeded |
 | 500 | Internal Server Error | Unexpected server error |
 | 503 | Service Unavailable | Dependent service is unavailable |
+
+Here is the same summary table in English:
+
+## Application Status Code Summary Table
+
+| Endpoint | Success | Errors |
+|----------|---------|--------|
+| POST /register | 201 | 400, 409, 500 |
+| POST /login | 200 | 400, 401, 429, 500 |
+| POST /verify | 200 | 401, 500 |
+| POST /logout | 200 | 401 |
+| GET /users/{id} | 200 | 401, 403, 404, 500 |
+| PUT /users/{id} | 200 | 400, 401, 403, 409, 500 |
+| DELETE /users/{id} | 204 | 401, 403, 404, 500 |
+| GET /users | 200 | 401, 500 |
+| POST /orders | 201 | 400, 401, 500 |
+| GET /orders/{id} | 200 | 401, 403, 404, 500 |
+| GET /orders/user/{id} | 200 | 401, 403, 500 |
+| PUT /orders/{id} | 200 | 400, 401, 403, 404, 500 |
+| DELETE /orders/{id} | 204 | 401, 403, 404, 500 |
+| GET /health | 200 | 503 |
