@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления - Заказы</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo-small">
+                <h2>OrderSystem</h2>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link active">Заказы</a>
+                <a href="users.html" class="nav-link" id="adminLink" style="display: none;">Пользователи</a>
+                <button id="logoutBtn" class="btn-logout">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="user-info" id="userInfo">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-details">
+                    <h3 id="userName">Загрузка...</h3>
+                    <p id="userEmail"></p>
+                </div>
+            </div>
+            <button id="createOrderBtn" class="btn-create">+ Новый заказ</button>
+        </div>
+
+        <div class="content">
+            <div class="orders-header">
+                <h1>Мои заказы</h1>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-status="all">Все</button>
+                    <button class="filter-btn" data-status="pending">В обработке</button>
+                    <button class="filter-btn" data-status="processing">Выполняется</button>
+                    <button class="filter-btn" data-status="completed">Завершён</button>
+                    <button class="filter-btn" data-status="cancelled">Отменён</button>
+                </div>
+            </div>
+            <div id="ordersList" class="orders-list">
+                <div class="loading">Загрузка заказов...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания заказа -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Создать новый заказ</h2>
+            <form id="createOrderForm">
+                <div class="form-group">
+                    <label>Название товара</label>
+                    <input type="text" id="orderProduct" required placeholder="Например: Ноутбук">
+                </div>
+                <div class="form-group">
+                    <label>Количество</label>
+                    <input type="number" id="orderQuantity" required min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Сумма (₽)</label>
+                    <input type="number" id="orderAmount" required min="0" step="0.01" placeholder="1000">
+                </div>
+                <button type="submit" class="btn-primary">Создать заказ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования статуса -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content">
+            <span class="close-status">&times;</span>
+            <h2>Обновить статус заказа</h2>
+            <form id="statusForm">
+                <input type="hidden" id="statusOrderId">
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select id="orderStatus" required>
+                        <option value="pending">В обработке</option>
+                        <option value="processing">Выполняется</option>
+                        <option value="completed">Завершён</option>
+                        <option value="cancelled">Отменён</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Обновить</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
