@@ -1,8 +1,8 @@
 // Конфигурация API (замени на реальные адреса сервисов)
 const API_CONFIG = {
-    auth: 'http://localhost:5001',    // Сервис auth
-    users: 'http://localhost:5002',   // Сервис users
-    orders: 'http://localhost:5003'   // Сервис orders
+    auth: '/api/auth',    // Сервис auth
+    users: '/api/users',   // Сервис users
+    orders: '/api/orders'   // Сервис orders
 };
 
 // Глобальные настройки для fetch с cookies
@@ -142,8 +142,8 @@ const AuthService = {
 
     async checkAuth() {
         try {
-            const response = await fetchWithCredentials(`${API_CONFIG.auth}/check`, {
-                method: 'GET'
+            const response = await fetchWithCredentials(`${API_CONFIG.auth}/verify`, {
+                method: 'POST'
             });
             
             if (response.ok) {
