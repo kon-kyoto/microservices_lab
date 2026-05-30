@@ -2,7 +2,7 @@ import pytest
 from auth_tests import gen_users, register_user, login_user, verify_user
 from users_tests import user_info, user_change_username, user_change_email, users_list, user_delete
 
-users = gen_users()
+users = gen_users(5)
 
 @pytest.mark.parametrize("user", users)
 class TestUserFlow:
