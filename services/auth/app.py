@@ -17,40 +17,41 @@ from contextlib import contextmanager
 load_dotenv()
 app = Flask(__name__)
 
-FLASK_MODE = os.getenv('FLASK_MOD', 'dev')
+FLASK_MODE = os.getenv("FLASK_MOD", "dev")
 
-if FLASK_MODE == 'prod':
+if FLASK_MODE == "prod":
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        filename='logs/app.log'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        filename="logs/app.log",
     )
 else:
     logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
 redis_client = redis.Redis(
-        host=os.getenv('REDIS_HOST'),
-        port=int(os.getenv('REDIS_PORT')),
-        decode_responses=True 
-    )
+    host=os.getenv("REDIS_HOST"),
+    port=int(os.getenv("REDIS_PORT")),
+    decode_responses=True,
+)
 
 JWT_CONFIG = {
-    'algorithm': 'HS256',
-    'secret_key': os.getenv('SECRET_KEY'),
-    'expires_hours': int(os.getenv('TIMEDELTA', '24'))
+    "algorithm": "HS256",
+    "secret_key": os.getenv("SECRET_KEY"),
+    "expires_hours": int(os.getenv("TIMEDELTA", "24")),
 }
+
 
 def get_db_connection():
     return psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST'),
-            database=os.getenv('DB_NAME'),
-            user=os.getenv('POSTGRES_USER'),
-            password=os.getenv('POSTGRES_PASSWORD'),
-            cursor_factory=RealDictCursor
-        )
+        host=os.getenv("POSTGRES_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),
+        cursor_factory=RealDictCursor,
+    )
+
 
 @contextmanager
 def get_db_cursor():
@@ -64,212 +65,289 @@ def get_db_cursor():
     finally:
         conn.close()
 
-@app.route('/register', methods=['POST'])
+
+@app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
     if not data:
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Request body is required")
-        return jsonify({'error': 'Request body is required'}), 400
-    
-    username = data.get('username')
-    password = data.get('password')
-    email = data.get('email')
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Request body is required"
+        )
+        return jsonify({"error": "Request body is required"}), 400
+
+    username = data.get("username")
+    password = data.get("password")
+    email = data.get("email")
 
     if not username or not password or not email:
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Missing required fields")
-        return jsonify({'error': 'Missing required fields: username, email, password'}), 400
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Missing required fields"
+        )
+        return (
+            jsonify({"error": "Missing required fields: username, email, password"}),
+            400,
+        )
 
     email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     if not re.match(email_pattern, email):
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Invalid email format: {email}")
-        return jsonify({'error': 'Invalid email format'}), 400
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Invalid email format: {email}"
+        )
+        return jsonify({"error": "Invalid email format"}), 400
 
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     try:
         with get_db_cursor() as cur:
             cur.execute(
                 "INSERT INTO users (username, email) VALUES (%s, %s) RETURNING id",
-                (username, email)
+                (username, email),
             )
-            user_id = cur.fetchone()['id']
+            user_id = cur.fetchone()["id"]
             cur.execute(
                 "INSERT INTO auth_users (user_id, password_hash) VALUES (%s, %s)",
-                (user_id, password_hash.decode('utf-8'))
+                (user_id, password_hash.decode("utf-8")),
             )
-            app.logger.info(f"INFO [201] ip: {request.remote_addr} user_id: {user_id} - User created successfully")
-            return jsonify({'message': 'User created successfully', 'user_id': user_id}), 201
+            app.logger.info(
+                f"INFO [201] ip: {request.remote_addr} user_id: {user_id} - User created successfully"
+            )
+            return (
+                jsonify({"message": "User created successfully", "user_id": user_id}),
+                201,
+            )
     except psycopg2.IntegrityError:
-        app.logger.warning(f"WARNING [409] ip: {request.remote_addr} - Username or email already exists: {username}/{email}")
-        return jsonify({'error': 'Username or email already exists'}), 409
+        app.logger.warning(
+            f"WARNING [409] ip: {request.remote_addr} - Username or email already exists: {username}/{email}"
+        )
+        return jsonify({"error": "Username or email already exists"}), 409
     except Exception as e:
-        app.logger.error(f"ERROR [500] ip: {request.remote_addr} - Registration error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        app.logger.error(
+            f"ERROR [500] ip: {request.remote_addr} - Registration error: {str(e)}"
+        )
+        return jsonify({"error": "Internal server error"}), 500
 
-@app.route('/login', methods=['POST'])  
+
+@app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
     if not data:
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Request body is required")
-        return jsonify({'error': 'Request body is required'}), 400
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Request body is required"
+        )
+        return jsonify({"error": "Request body is required"}), 400
 
-    username = data.get('username')
-    password = data.get('password')
-    email = data.get('email')
+    username = data.get("username")
+    password = data.get("password")
+    email = data.get("email")
 
     if not password:
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Password is required")
-        return jsonify({'error': 'Password is required'}), 400
-    
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Password is required"
+        )
+        return jsonify({"error": "Password is required"}), 400
+
     if not email and not username:
-        app.logger.warning(f"WARNING [400] ip: {request.remote_addr} - Either email or username is required")
-        return jsonify({'error': 'Either email or username is required'}), 400
+        app.logger.warning(
+            f"WARNING [400] ip: {request.remote_addr} - Either email or username is required"
+        )
+        return jsonify({"error": "Either email or username is required"}), 400
 
     rate_key = f"login_rate:{request.remote_addr}"
     att = redis_client.incr(rate_key)
     if att == 1:
-        redis_client.expire(rate_key, int(os.getenv('STOP_LOGIN', 300)))
+        redis_client.expire(rate_key, int(os.getenv("STOP_LOGIN", 300)))
     if att > 10:
-        app.logger.warning(f"WARNING [429] ip: {request.remote_addr} - Too many login attempts (attempts: {att})")
-        return jsonify({'error': 'Too many login attempts. Try again later.'}), 429  
+        app.logger.warning(
+            f"WARNING [429] ip: {request.remote_addr} - Too many login attempts (attempts: {att})"
+        )
+        return jsonify({"error": "Too many login attempts. Try again later."}), 429
 
     try:
         with get_db_cursor() as cur:
             if username:
                 cur.execute(
-                    "SELECT id FROM users WHERE username = %s LIMIT 1",
-                    (username,)
+                    "SELECT id FROM users WHERE username = %s LIMIT 1", (username,)
                 )
             else:
-                cur.execute(
-                    "SELECT id FROM users WHERE email = %s LIMIT 1",
-                    (email,)
-                )
-            
+                cur.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (email,))
+
             user_row = cur.fetchone()
             if not user_row:
-                app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Invalid credentials - user not found")
-                return jsonify({'error': 'Invalid credentials'}), 401  
-            
-            user_id = user_row['id']
+                app.logger.warning(
+                    f"WARNING [401] ip: {request.remote_addr} - Invalid credentials - user not found"
+                )
+                return jsonify({"error": "Invalid credentials"}), 401
+
+            user_id = user_row["id"]
 
             cur.execute(
-                "SELECT password_hash FROM auth_users WHERE user_id = %s",
-                (user_id,)
+                "SELECT password_hash FROM auth_users WHERE user_id = %s", (user_id,)
             )
             password_row = cur.fetchone()
             if not password_row:
-                app.logger.warning(f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - no password hash")
-                return jsonify({'error': 'Invalid credentials'}), 401
-            
-            if not bcrypt.checkpw(password.encode('utf-8'), password_row['password_hash'].encode('utf-8')):
-                app.logger.warning(f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - wrong password")
-                return jsonify({'error': 'Invalid credentials'}), 401
+                app.logger.warning(
+                    f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - no password hash"
+                )
+                return jsonify({"error": "Invalid credentials"}), 401
+
+            if not bcrypt.checkpw(
+                password.encode("utf-8"), password_row["password_hash"].encode("utf-8")
+            ):
+                app.logger.warning(
+                    f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - wrong password"
+                )
+                return jsonify({"error": "Invalid credentials"}), 401
 
         token = jwt.encode(
             {
                 "user_id": user_id,
-                "exp": datetime.utcnow() + timedelta(hours=JWT_CONFIG['expires_hours'])
+                "exp": datetime.utcnow() + timedelta(hours=JWT_CONFIG["expires_hours"]),
             },
-            JWT_CONFIG['secret_key'],
-            algorithm=JWT_CONFIG['algorithm']
+            JWT_CONFIG["secret_key"],
+            algorithm=JWT_CONFIG["algorithm"],
         )
 
         redis_client.delete(rate_key)
 
-        response = make_response(jsonify({'message': 'Login successful'}))
+        response = make_response(jsonify({"message": "Login successful"}))
         response.set_cookie(
-            'access_token',
+            "access_token",
             token,
             httponly=True,
-            secure=False,  
-            samesite='Lax',
-            max_age=24*60*60
+            secure=False,
+            samesite="Lax",
+            max_age=24 * 60 * 60,
         )
-        app.logger.info(f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Login successful")
+        app.logger.info(
+            f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Login successful"
+        )
         return response, 200
 
     except Exception as e:
-        app.logger.error(f"ERROR [500] ip: {request.remote_addr} - Login error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        app.logger.error(
+            f"ERROR [500] ip: {request.remote_addr} - Login error: {str(e)}"
+        )
+        return jsonify({"error": "Internal server error"}), 500
 
-@app.route('/logout', methods=['POST'])
+
+@app.route("/logout", methods=["POST"])
 def logout():
-    token = request.cookies.get('access_token')
-    
+    token = request.cookies.get("access_token")
+
     if not token:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - No token provided for logout")
-        return jsonify({'error': 'No token provided'}), 401
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - No token provided for logout"
+        )
+        return jsonify({"error": "No token provided"}), 401
 
     try:
-        jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
-        user_id = jwt_data.get('user_id')
-        exp_timestamp = jwt_data['exp']
+        jwt_data = jwt.decode(
+            token, JWT_CONFIG["secret_key"], algorithms=[JWT_CONFIG["algorithm"]]
+        )
+        user_id = jwt_data.get("user_id")
+        exp_timestamp = jwt_data["exp"]
         current_time = datetime.utcnow().timestamp()
         ttl = int(exp_timestamp - current_time)
 
         if ttl > 0:
             redis_client.setex(f"blacklist:{token}", ttl, "revoked")
-            app.logger.info(f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token blacklisted for {ttl} seconds")
+            app.logger.info(
+                f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token blacklisted for {ttl} seconds"
+            )
         else:
-            app.logger.info(f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token already expired")
-        
-        return jsonify({'message': 'Logout completed'}), 200
-        
-    except jwt.ExpiredSignatureError:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Logout attempt with expired token")
-        return jsonify({'error': 'Token already expired'}), 401
-    except jwt.InvalidTokenError:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Logout attempt with invalid token")
-        return jsonify({'error': 'Invalid token'}), 401
-    except Exception as e:
-        app.logger.error(f"ERROR [500] ip: {request.remote_addr} - Logout error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+            app.logger.info(
+                f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token already expired"
+            )
 
-@app.route('/verify', methods=['POST'])
+        return jsonify({"message": "Logout completed"}), 200
+
+    except jwt.ExpiredSignatureError:
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - Logout attempt with expired token"
+        )
+        return jsonify({"error": "Token already expired"}), 401
+    except jwt.InvalidTokenError:
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - Logout attempt with invalid token"
+        )
+        return jsonify({"error": "Invalid token"}), 401
+    except Exception as e:
+        app.logger.error(
+            f"ERROR [500] ip: {request.remote_addr} - Logout error: {str(e)}"
+        )
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/verify", methods=["POST"])
 def verify():
-    token = request.cookies.get('access_token')
-    
+    token = request.cookies.get("access_token")
+
     if not token:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - No token provided for verification")
-        return jsonify({'error': 'No token provided'}), 401  
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - No token provided for verification"
+        )
+        return jsonify({"error": "No token provided"}), 401
 
     if redis_client.exists(f"blacklist:{token}"):
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Token has been revoked")
-        return jsonify({'error': 'Token has been revoked'}), 401  
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - Token has been revoked"
+        )
+        return jsonify({"error": "Token has been revoked"}), 401
 
     try:
-        jwt_data = jwt.decode(token, JWT_CONFIG['secret_key'], algorithms=[JWT_CONFIG['algorithm']])
-        user_id = jwt_data.get('user_id')
-        app.logger.info(f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Token verified successfully")
-        return jsonify({'valid': True, 'user_id': user_id}), 200
+        jwt_data = jwt.decode(
+            token, JWT_CONFIG["secret_key"], algorithms=[JWT_CONFIG["algorithm"]]
+        )
+        user_id = jwt_data.get("user_id")
+        app.logger.info(
+            f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Token verified successfully"
+        )
+        return jsonify({"valid": True, "user_id": user_id}), 200
     except jwt.ExpiredSignatureError:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Token has expired")
-        return jsonify({'error': 'Token has expired'}), 401
+        app.logger.warning(
+            f"WARNING [401] ip: {request.remote_addr} - Token has expired"
+        )
+        return jsonify({"error": "Token has expired"}), 401
     except jwt.InvalidTokenError:
         app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Invalid token")
-        return jsonify({'error': 'Invalid token'}), 401
+        return jsonify({"error": "Invalid token"}), 401
     except Exception as e:
-        app.logger.error(f"ERROR [500] ip: {request.remote_addr} - Verify error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        app.logger.error(
+            f"ERROR [500] ip: {request.remote_addr} - Verify error: {str(e)}"
+        )
+        return jsonify({"error": "Internal server error"}), 500
 
-@app.route('/health', methods=['GET'])
+
+@app.route("/health", methods=["GET"])
 def health():
     try:
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
             redis_client.ping()
         app.logger.info(f"INFO [200] ip: {request.remote_addr} - Health check passed")
-        return jsonify({'status': 'healthy'}), 200
+        return jsonify({"status": "healthy"}), 200
     except redis.ConnectionError as e:
-        app.logger.error(f"ERROR [503] ip: {request.remote_addr} - Health check failed - Redis error: {str(e)}")
-        return jsonify({'status': 'unhealthy', 'message': 'Redis connection failed'}), 503
+        app.logger.error(
+            f"ERROR [503] ip: {request.remote_addr} - Health check failed - Redis error: {str(e)}"
+        )
+        return (
+            jsonify({"status": "unhealthy", "message": "Redis connection failed"}),
+            503,
+        )
     except psycopg2.Error as e:
-        app.logger.error(f"ERROR [503] ip: {request.remote_addr} - Health check failed - Database error: {str(e)}")
-        return jsonify({'status': 'unhealthy', 'message': 'Database connection failed'}), 503
+        app.logger.error(
+            f"ERROR [503] ip: {request.remote_addr} - Health check failed - Database error: {str(e)}"
+        )
+        return (
+            jsonify({"status": "unhealthy", "message": "Database connection failed"}),
+            503,
+        )
     except Exception as e:
-        app.logger.error(f"ERROR [503] ip: {request.remote_addr} - Health check failed: {str(e)}")
-        return jsonify({'status': 'unhealthy', 'message': str(e)}), 503
+        app.logger.error(
+            f"ERROR [503] ip: {request.remote_addr} - Health check failed: {str(e)}"
+        )
+        return jsonify({"status": "unhealthy", "message": str(e)}), 503
+
 
 if __name__ == "__main__":
-    app.run(host = "0.0.0.0", port = 5001)
+    app.run(host="0.0.0.0", port=5001)
