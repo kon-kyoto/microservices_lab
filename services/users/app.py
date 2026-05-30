@@ -155,8 +155,9 @@ def users_list():
 
     with get_db_cursor() as cur:
         cur.execute("SELECT * FROM users")
+        data = cur.fetchall()
 
-    return jsonify(result), 200
+    return jsonify(data), 200
 
 @app.route('/health', methods=['GET'])
 def health():
