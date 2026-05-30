@@ -1,9 +1,14 @@
 version: '3.8'
 
 networks:
+  frontend:
+    driver: bridge
   backend:
+    driver: bridge
+    internal: true
 
 services:
+
   postgres:
     image: postgres:15-alpine
     container_name: postgres_db
@@ -24,13 +29,15 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
+    env_file: .env
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
     networks:
-      backend:
+      - backend
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s 
@@ -49,6 +56,7 @@ services:
       redis:
         condition: service_healthy
     networks:
+      - frontend
       - backend
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5001/health']
@@ -66,6 +74,7 @@ services:
       auth:
         condition: service_healthy
     networks:
+      - frontend
       - backend
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5002/health']
@@ -83,12 +92,26 @@ services:
       auth:
         condition: service_healthy
     networks:
+      - frontend
       - backend
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:5003/health']
       interval: 10s 
       timeout: 5s 
       retries: 2
+
+  frontend:
+    build: ./frontend 
+    container_name: front 
+    ports:
+      - "80:80"
+    networks:
+      frontend:
+    depends_on:
+      users:
+        condition: service_healthy
+      orders:
+        condition: service_healthy
 
 volumes:
   postgres_data:
