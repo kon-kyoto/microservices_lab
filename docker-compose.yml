@@ -39,10 +39,14 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE # only ports < 1024
+      - CHOWN
+      - DAC_OVERRIDE
     read_only: true
     tmpfs:
-      - /tmp 
-      - /var/cache/nginx 
+      - /tmp:rw,noexec,nosuid,size=100M
+      - /var/cache/nginx:rw,noexec,noexec,nosuid,size=100M 
+      - /var/run:rw,noexec,nosuid,size=10M 
+      - /var/log/nginx:rw,noexec,nosuid,size=50M
     deploy:
       resources:
         limits:
@@ -71,11 +75,16 @@ services:
       - no-new-privileges:true 
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
     deploy:
-      resoureces:
+      resources:
         limits:
           cpus: '1.0'
-          memory: 256M 
+          memory: 512M 
         reservations:
           cpus: '0.5'
           memory: 256M 
@@ -107,7 +116,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memoty: 256M
+          memory: 256M
 
   auth:
     build: ./services/auth
@@ -131,7 +140,9 @@ services:
       - ALL
     user: "1000:1000"
     environment:
-      - FLASK_MOD=prod 
+      - FLASK_MODE=dev 
+    tmpfs:
+      /app/logs:rw,noexec,nosuid,size=50M
     deploy:
       resources:
         limits:
@@ -161,7 +172,9 @@ services:
       - ALL
     user: "1000:1000"
     environment:
-      - FLASK_MOD=prod
+      - FLASK_MODE=dev
+    tmpfs:
+      - /app/logs:rw,noexec,nosuid,size=50M
     deploy:
       resources:
         limits:
@@ -187,6 +200,8 @@ services:
     cap_drop:
       - ALL 
     user: "1000:1000"
+    tmpfs:
+      - /app/logs:rw,noexec,nosuid,size=50M
     deploy:
       resources:
         limits:
