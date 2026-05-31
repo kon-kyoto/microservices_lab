@@ -1,27 +1,27 @@
 // Загрузка информации о пользователе и заказах
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = API.getCurrentUser();
-    if (!user) {
-        // Ждём проверки auth из auth.js
-        setTimeout(async () => {
-            const currentUser = API.getCurrentUser();
-            if (!currentUser) return;
-            await initDashboard(currentUser);
-        }, 500);
-        return;
-    }
-    
-    await initDashboard(user);
+    // Ждём небольшую задержку для проверки auth
+    setTimeout(async () => {
+        const userId = API.getCurrentUserId();
+        if (!userId) return;
+        
+        // Получаем полную информацию о пользователе
+        const user = await API.getCurrentUser();
+        if (user) {
+            await initDashboard(user);
+        }
+    }, 100);
 });
 
 async function initDashboard(user) {
     // Отображаем информацию о пользователе
     document.getElementById('userName').textContent = user.username || user.name || 'Пользователь';
-    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('userEmail').textContent = user.email || '';
     
-    // Показываем ссылку на админку если пользователь админ
-    if (user.role === 'admin') {
-        document.getElementById('adminLink').style.display = 'inline-block';
+    // Скрываем ссылку на админку, так как ролей нет
+    const adminLink = document.getElementById('adminLink');
+    if (adminLink) {
+        adminLink.style.display = 'none';
     }
     
     // Загружаем заказы пользователя
@@ -43,8 +43,12 @@ async function initDashboard(user) {
     const createBtn = document.getElementById('createOrderBtn');
     const closeBtn = document.querySelector('#orderModal .close');
     
-    createBtn.onclick = () => modal.style.display = 'block';
-    closeBtn.onclick = () => modal.style.display = 'none';
+    if (createBtn) {
+        createBtn.onclick = () => modal.style.display = 'block';
+    }
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.style.display = 'none';
+    }
     
     window.onclick = (event) => {
         if (event.target === modal) modal.style.display = 'none';
@@ -53,55 +57,61 @@ async function initDashboard(user) {
     };
     
     // Создание заказа
-    document.getElementById('createOrderForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const orderData = {
-            user_id: user.id,
-            product: document.getElementById('orderProduct').value,
-            quantity: parseInt(document.getElementById('orderQuantity').value),
-            amount: parseFloat(document.getElementById('orderAmount').value),
-            status: 'pending'
-        };
-        
-        // Валидация
-        if (!orderData.product || orderData.quantity < 1 || orderData.amount <= 0) {
-            showMessage('Заполните все поля корректно', 'error');
-            return;
-        }
-        
-        try {
-            const result = await API.OrdersService.createOrder(orderData);
-            if (result.id) {
-                modal.style.display = 'none';
-                document.getElementById('createOrderForm').reset();
-                await loadUserOrders(user.id);
-                showMessage('Заказ успешно создан!', 'success');
-            } else {
-                showMessage(result.error || 'Ошибка создания заказа', 'error');
+    const createOrderForm = document.getElementById('createOrderForm');
+    if (createOrderForm) {
+        createOrderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const orderData = {
+                user_id: user.id,
+                product: document.getElementById('orderProduct').value,
+                quantity: parseInt(document.getElementById('orderQuantity').value),
+                amount: parseFloat(document.getElementById('orderAmount').value),
+                status: 'pending'
+            };
+            
+            // Валидация
+            if (!orderData.product || orderData.quantity < 1 || orderData.amount <= 0) {
+                showMessage('Заполните все поля корректно', 'error');
+                return;
             }
-        } catch (error) {
-            showMessage('Ошибка создания заказа', 'error');
-        }
-    });
+            
+            try {
+                const result = await API.OrdersService.createOrder(orderData);
+                if (result.id) {
+                    modal.style.display = 'none';
+                    document.getElementById('createOrderForm').reset();
+                    await loadUserOrders(user.id);
+                    showMessage('Заказ успешно создан!', 'success');
+                } else {
+                    showMessage(result.error || 'Ошибка создания заказа', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка создания заказа', 'error');
+            }
+        });
+    }
     
     // Обновление статуса
-    document.getElementById('statusForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const orderId = document.getElementById('statusOrderId').value;
-        const status = document.getElementById('orderStatus').value;
-        
-        try {
-            const result = await API.OrdersService.updateOrderStatus(orderId, status);
-            if (result.message || result.id) {
-                document.getElementById('statusModal').style.display = 'none';
-                await loadUserOrders(user.id);
-                showMessage('Статус заказа обновлён', 'success');
+    const statusForm = document.getElementById('statusForm');
+    if (statusForm) {
+        statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('statusOrderId').value;
+            const status = document.getElementById('orderStatus').value;
+            
+            try {
+                const result = await API.OrdersService.updateOrderStatus(orderId, status);
+                if (result.message || result.id) {
+                    document.getElementById('statusModal').style.display = 'none';
+                    await loadUserOrders(user.id);
+                    showMessage('Статус заказа обновлён', 'success');
+                }
+            } catch (error) {
+                showMessage('Ошибка обновления статуса', 'error');
             }
-        } catch (error) {
-            showMessage('Ошибка обновления статуса', 'error');
-        }
-    });
+        });
+    }
 }
 
 async function loadUserOrders(userId, statusFilter = null) {
@@ -195,9 +205,9 @@ async function cancelOrder(orderId) {
     if (confirm('Вы уверены, что хотите отменить этот заказ?')) {
         try {
             await API.OrdersService.cancelOrder(orderId);
-            const user = API.getCurrentUser();
-            if (user) {
-                await loadUserOrders(user.id);
+            const userId = API.getCurrentUserId();
+            if (userId) {
+                await loadUserOrders(userId);
             }
             showMessage('Заказ отменён', 'success');
         } catch (error) {

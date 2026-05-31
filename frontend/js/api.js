@@ -1,15 +1,15 @@
-// Конфигурация API (замени на реальные адреса сервисов)
+// Конфигурация API
 const API_CONFIG = {
-    auth: '/api/auth',    // Сервис auth
-    users: '/api/users',   // Сервис users
-    orders: '/api/orders'   // Сервис orders
+    auth: '/api/auth',
+    users: '/api/users',
+    orders: '/api/orders'
 };
 
 // Глобальные настройки для fetch с cookies
 const fetchWithCredentials = (url, options = {}) => {
     return fetch(url, {
         ...options,
-        credentials: 'include', // ВАЖНО: отправляем и принимаем cookies
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...options.headers
@@ -17,10 +17,7 @@ const fetchWithCredentials = (url, options = {}) => {
     });
 };
 
-// Хранение данных пользователя (токен хранится ТОЛЬКО в cookie)
-let currentUser = null;
-
-// Базовый API клиент для микросервисов
+// Базовый API клиент
 class APIClient {
     constructor(baseURL, serviceName) {
         this.baseURL = baseURL;
@@ -33,18 +30,56 @@ class APIClient {
         try {
             const response = await fetchWithCredentials(url, options);
             
-            // Если 401, пробуем обновить токен или разлогиниться
+            // 401 - не авторизован
             if (response.status === 401) {
-		    this.logout();
-		    throw new Error('Сессия истекла, войдите снова');
+                this.logout();
+                throw new Error('Сессия истекла, войдите снова');
             }
             
-            // Для пустых ответов (204 No Content)
+            // 403 - доступ запрещен
+            if (response.status === 403) {
+                throw new Error('Доступ запрещен');
+            }
+            
+            // 404 - не найдено
+            if (response.status === 404) {
+                throw new Error('Ресурс не найден');
+            }
+            
+            // 409 - конфликт
+            if (response.status === 409) {
+                const data = await response.json();
+                throw new Error(data.error || 'Конфликт данных');
+            }
+            
+            // 429 - слишком много запросов
+            if (response.status === 429) {
+                throw new Error('Слишком много запросов, попробуйте позже');
+            }
+            
+            // 400 - плохой запрос
+            if (response.status === 400) {
+                const data = await response.json();
+                throw new Error(data.error || 'Неверные данные');
+            }
+            
+            // 500 - внутренняя ошибка сервера
+            if (response.status === 500) {
+                throw new Error('Внутренняя ошибка сервера');
+            }
+            
+            // 503 - сервис недоступен
+            if (response.status === 503) {
+                throw new Error('Сервис временно недоступен');
+            }
+            
+            // Для 204 No Content
             if (response.status === 204) {
                 return { success: true };
             }
             
-            return await response.json();
+            const data = await response.json();
+            return data;
         } catch (error) {
             console.error(`API Error (${this.serviceName}):`, error);
             throw error;
@@ -52,152 +87,243 @@ class APIClient {
     }
 
     logout() {
-        // Вызываем логаут на сервере для очистки cookie
         fetchWithCredentials(`${API_CONFIG.auth}/logout`, {
             method: 'POST'
         }).catch(() => {});
         
-        localStorage.removeItem('user_data');
-        currentUser = null;
+        localStorage.removeItem('user_id');
         window.location.href = '/index.html';
-    }
-
-    getCurrentUser() {
-        if (currentUser) return currentUser;
-        const userData = localStorage.getItem('user_data');
-        if (userData) {
-            currentUser = JSON.parse(userData);
-            return currentUser;
-        }
-        return null;
     }
 }
 
-// Инициализация клиентов для сервисов
+// Инициализация клиентов
 const authAPI = new APIClient(API_CONFIG.auth, 'auth');
 const usersAPI = new APIClient(API_CONFIG.users, 'users');
 const ordersAPI = new APIClient(API_CONFIG.orders, 'orders');
 
-// Методы для работы с Auth сервисом (без явной передачи токена)
+// Auth Service
 const AuthService = {
     async register(username, email, password) {
-        const response = await fetchWithCredentials(`${API_CONFIG.auth}/register`, {
+        const response = await fetch(`${API_CONFIG.auth}/register`, {
             method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ username, email, password })
         });
-        return await response.json();
+        
+        // 201 - успешная регистрация
+        if (response.status === 201) {
+            const data = await response.json();
+            return data;
+        }
+        
+        // 400 - плохой запрос
+        if (response.status === 400) {
+            const data = await response.json();
+            throw new Error(data.error || 'Неверные данные');
+        }
+        
+        // 409 - конфликт (пользователь существует)
+        if (response.status === 409) {
+            const data = await response.json();
+            throw new Error(data.error || 'Пользователь уже существует');
+        }
+        
+        // 500 - ошибка сервера
+        if (response.status === 500) {
+            throw new Error('Внутренняя ошибка сервера');
+        }
+        
+        const data = await response.json();
+        return data;
     },
 
     async login(username, password) {
-        const response = await fetchWithCredentials(`${API_CONFIG.auth}/login`, {
+        const response = await fetch(`${API_CONFIG.auth}/login`, {
             method: 'POST',
-            body: JSON.stringify({username, password })
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
         });
         
-        return response;
+        // 200 - успешный вход
+        if (response.status === 200) {
+            const data = await response.json();
+            if (data.user_id) {
+                localStorage.setItem('user_id', data.user_id);
+            }
+            return { ok: true, ...data };
+        }
+        
+        // 400 - плохой запрос
+        if (response.status === 400) {
+            const data = await response.json();
+            throw new Error(data.error || 'Неверные данные');
+        }
+        
+        // 401 - неверные учетные данные
+        if (response.status === 401) {
+            throw new Error('Неверное имя пользователя или пароль');
+        }
+        
+        // 429 - слишком много попыток
+        if (response.status === 429) {
+            throw new Error('Слишком много попыток входа, попробуйте позже');
+        }
+        
+        // 500 - ошибка сервера
+        if (response.status === 500) {
+            throw new Error('Внутренняя ошибка сервера');
+        }
+        
+        const data = await response.json();
+        return { ok: false, ...data };
     },
 
     async logout() {
-        await fetchWithCredentials(`${API_CONFIG.auth}/logout`, {
-            method: 'POST'
+        await fetch(`${API_CONFIG.auth}/logout`, {
+            method: 'POST',
+            credentials: 'include'
         }).catch(() => {});
         
-        localStorage.removeItem('user_data');
-        currentUser = null;
+        localStorage.removeItem('user_id');
         window.location.href = '/index.html';
     },
 
     async checkAuth() {
         try {
-            const response = await fetchWithCredentials(`${API_CONFIG.auth}/verify`, {
-                method: 'POST'
+            const response = await fetch(`${API_CONFIG.auth}/verify`, {
+                method: 'POST',
+                credentials: 'include'
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                if (data.authenticated && data.user) {
-                    currentUser = data.user;
-                    localStorage.setItem('user_data', JSON.stringify(data.user));
-                    return true;
-                }
+            // 200 - авторизован
+            if (response.status === 200) {
+                return true;
             }
+            
+            // 401 - не авторизован
+            if (response.status === 401) {
+                return false;
+            }
+            
+            // 500 - ошибка сервера
             return false;
         } catch {
             return false;
         }
     },
     
-    async refreshToken() {
-        return await authAPI.refreshToken();
+    async getCurrentUser() {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) return null;
+        
+        try {
+            const user = await UsersService.getProfile(userId);
+            return user;
+        } catch (error) {
+            console.error('Failed to get user info:', error);
+            return null;
+        }
     }
 };
 
-// Методы для работы с Users сервисом (cookie передаются автоматически)
+// Users Service
 const UsersService = {
     async getProfile(userId) {
-        return await usersAPI.request(`/users/${userId}`, { method: 'GET' });
+        return await usersAPI.request(`/${userId}`, { method: 'GET' });
     },
 
     async updateProfile(userId, userData) {
-        return await usersAPI.request(`/users/${userId}`, {
+        return await usersAPI.request(`/${userId}`, {
             method: 'PUT',
             body: JSON.stringify(userData)
         });
     },
 
     async deleteAccount(userId) {
-        return await usersAPI.request(`/users/${userId}`, { method: 'DELETE' });
+        return await usersAPI.request(`/${userId}`, { method: 'DELETE' });
     },
 
     async getAllUsers() {
-        return await usersAPI.request('/users', { method: 'GET' });
+        return await usersAPI.request('', { method: 'GET' });
     }
 };
 
-// Методы для работы с Orders сервисом
+// Orders Service
 const OrdersService = {
     async createOrder(orderData) {
-        return await ordersAPI.request('/orders', {
+        return await ordersAPI.request('', {
             method: 'POST',
             body: JSON.stringify(orderData)
         });
     },
 
     async getOrder(orderId) {
-        return await ordersAPI.request(`/orders/${orderId}`, { method: 'GET' });
+        return await ordersAPI.request(`/${orderId}`, { method: 'GET' });
     },
 
     async getUserOrders(userId) {
-        return await ordersAPI.request(`/orders/user/${userId}`, { method: 'GET' });
+        return await ordersAPI.request(`/user/${userId}`, { method: 'GET' });
     },
 
     async updateOrderStatus(orderId, status) {
-        return await ordersAPI.request(`/orders/${orderId}/status`, {
+        return await ordersAPI.request(`/${orderId}`, {
             method: 'PUT',
             body: JSON.stringify({ status })
         });
     },
 
     async cancelOrder(orderId) {
-        return await ordersAPI.request(`/orders/${orderId}`, { method: 'DELETE' });
+        return await ordersAPI.request(`/${orderId}`, { method: 'DELETE' });
     }
 };
 
-// Helper для получения текущего пользователя
-function getCurrentUser() {
-    return authAPI.getCurrentUser();
+// Helper functions
+function getCurrentUserId() {
+    return localStorage.getItem('user_id');
 }
 
-function isAdmin() {
-    const user = getCurrentUser();
-    return user && user.role === 'admin';
+async function getCurrentUser() {
+    return await AuthService.getCurrentUser();
 }
 
-// Экспорт для использования в других файлах
+// Health check
+async function checkHealth(service) {
+    const urls = {
+        auth: `${API_CONFIG.auth}/health`,
+        users: `${API_CONFIG.users}/health`,
+        orders: `${API_CONFIG.orders}/health`
+    };
+    
+    try {
+        const response = await fetch(urls[service], {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        // 200 - здоров
+        if (response.status === 200) {
+            return true;
+        }
+        
+        // 503 - сервис недоступен
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// Экспорт
 window.API = {
     AuthService,
     UsersService,
     OrdersService,
+    getCurrentUserId,
     getCurrentUser,
-    isAdmin
+    checkHealth
 };

@@ -77,13 +77,14 @@ if (document.getElementById('loginForm')) {
             }
         } catch (error) {
             messageDiv.className = 'message error';
-            messageDiv.textContent = error.message || 'Неверный email или пароль';
+            messageDiv.textContent = error.message || 'Неверное имя пользователя или пароль';
         }
     });
 }
 
-// Проверка авторизации на защищённых страницах (через cookie)
-if (window.location.pathname !== '/index.html') {
+// Проверка авторизации на защищённых страницах
+if (window.location.pathname !== '/index.html' && 
+    window.location.pathname !== '/') {
     // Проверяем аутентификацию через API
     API.AuthService.checkAuth().then(isAuthenticated => {
         if (!isAuthenticated) {
