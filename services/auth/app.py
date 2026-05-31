@@ -34,7 +34,7 @@ redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST"),
     port=int(os.getenv("REDIS_PORT")),
     password=os.getenv("REDIS_PASSWORD"),
-    decode_responses=True
+    decode_responses=True,
 )
 
 JWT_CONFIG = {
@@ -210,7 +210,9 @@ def login():
 
         redis_client.delete(rate_key)
 
-        response = make_response(jsonify({"message": "Login successful", "user_id": user_id}))
+        response = make_response(
+            jsonify({"message": "Login successful", "user_id": user_id})
+        )
         response.set_cookie(
             "access_token",
             token,
