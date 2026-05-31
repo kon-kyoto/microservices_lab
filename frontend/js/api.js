@@ -2,7 +2,7 @@
 const API_CONFIG = {
     auth: '/api/auth',
     users: '/api/users',
-    orders: '/api/orders'
+    orders: '/api/orders/'
 };
 
 // Глобальные настройки для fetch с cookies
@@ -209,7 +209,7 @@ const UsersService = {
     },
 
     async getAllUsers() {
-        const result = await usersAPI.request('', { method: 'GET' });
+        const result = await usersAPI.request('/', { method: 'GET' });
         // Если сервис вернул null (404), возвращаем пустой массив
         return result || [];
     },
@@ -230,9 +230,9 @@ const UsersService = {
 // ============ ORDERS SERVICE ============
 const OrdersService = {
     async createOrder(total_amount) {
-        return await ordersAPI.request('', {
+        return await ordersAPI.request('/', {
             method: 'POST',
-            body: JSON.stringify({ total_amount: parseInt(total_amount) })
+            body: JSON.stringify({ "total_amount": parseInt(total_amount) })
         });
     },
 
