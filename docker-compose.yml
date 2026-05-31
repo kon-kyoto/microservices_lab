@@ -21,7 +21,6 @@ services:
     container_name: nginx_gateway
     ports:
       - "80:80"
-      - "443:443"
     networks:
       - frontend
       - backend
@@ -33,6 +32,17 @@ services:
       orders:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/vat/log/nginx
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    tmpfs:
+      - /run:rw,noexec,nosuid,size=16M
+      - /var/cache/nginx/client_temp:rw,noexec,nosuid,size=256M
+      - /var/cache/nginx/proxy_temp:rw,noexec,nosuid,size=128M
+      - /var/cache/nginx/fastcgi_temp:rw,noexec,nosuid,size=128M
+      - /tmp:rw,noexec,nosuid,size=128M
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -42,19 +52,6 @@ services:
       - CHOWN
       - DAC_OVERRIDE
     read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=100M
-      - /var/cache/nginx:rw,noexec,noexec,nosuid,size=100M 
-      - /var/run:rw,noexec,nosuid,size=10M 
-      - /var/log/nginx:rw,noexec,nosuid,size=50M
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M 
-        reservations:
-          cpus: '0.25'
-          memory: 128M
 
   postgres:
     image: postgres:15-alpine
@@ -71,6 +68,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s 
+    user: "70:70"
     security_opt:
       - no-new-privileges:true 
     cap_drop:
@@ -78,16 +76,6 @@ services:
     cap_add:
       - CHOWN
       - DAC_OVERRIDE
-      - SETUID
-      - SETGID
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M 
-        reservations:
-          cpus: '0.5'
-          memory: 256M 
 
   redis:
     image: redis:7-alpine
@@ -105,6 +93,7 @@ services:
       timeout: 1s 
       retries: 5
       start_period: 20s
+    user: "999:999"
     security_opt:
       - no-new-privileges:true 
     cap_drop:
@@ -112,11 +101,6 @@ services:
     cap_add:
       - SETUID
       - SETGID
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
 
   auth:
     build: ./services/auth
@@ -134,23 +118,13 @@ services:
       interval: 10s 
       timeout: 5s 
       retries: 2
+    user: "1000:1000"
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    user: "1000:1000"
     environment:
       - FLASK_MODE=dev 
-    tmpfs:
-      /app/logs:rw,noexec,nosuid,size=50M
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M 
-        reservations:
-          cpus: '0.25'
-          memory: 256M
 
   users:
     build: ./services/users
@@ -166,20 +140,13 @@ services:
       interval: 10s 
       timeout: 5s 
       retries: 2
+    user: "1000:1000"
     security_opt:
       - no-new-privileges:true 
     cap_drop:
       - ALL
-    user: "1000:1000"
     environment:
       - FLASK_MODE=dev
-    tmpfs:
-      - /app/logs:rw,noexec,nosuid,size=50M
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M 
 
   orders:
     build: ./services/orders 
@@ -195,20 +162,17 @@ services:
       interval: 10s 
       timeout: 5s 
       retries: 2
+    user: "1000:1000"
     security_opt:
       - no-new-privileges:true 
     cap_drop:
       - ALL 
-    user: "1000:1000"
-    tmpfs:
-      - /app/logs:rw,noexec,nosuid,size=50M
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
 volumes:
+  nginx_cache:
+    driver: local
+  nginx_logs:
+    driver: local
   postgres_data:
     driver: local
   redis_data:
