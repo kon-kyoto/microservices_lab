@@ -34,14 +34,11 @@ services:
     restart: unless-stopped
     volumes:
       - nginx_cache:/var/cache/nginx
-      - nginx_logs:/vat/log/nginx
+      - nginx_logs:/var/log/nginx
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./frontend:/usr/share/nginx/html:ro
     tmpfs:
       - /run:rw,noexec,nosuid,size=16M
-      - /var/cache/nginx/client_temp:rw,noexec,nosuid,size=256M
-      - /var/cache/nginx/proxy_temp:rw,noexec,nosuid,size=128M
-      - /var/cache/nginx/fastcgi_temp:rw,noexec,nosuid,size=128M
       - /tmp:rw,noexec,nosuid,size=128M
     security_opt:
       - no-new-privileges:true
@@ -75,9 +72,6 @@ services:
       - no-new-privileges:true 
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
 
   redis:
     image: redis:7-alpine
@@ -100,9 +94,6 @@ services:
       - no-new-privileges:true 
     cap_drop:
       - ALL
-    cap_add:
-      - SETUID
-      - SETGID
 
   auth:
     build: ./services/auth
