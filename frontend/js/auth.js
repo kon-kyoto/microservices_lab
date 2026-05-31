@@ -57,13 +57,13 @@ if (document.getElementById('loginForm')) {
     // Вход
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
+        const username = document.getElementById('loginUsername').value;
         const password = document.getElementById('loginPassword').value;
         
         const messageDiv = document.getElementById('message');
         
         try {
-            const result = await API.AuthService.login(email, password);
+            const result = await API.AuthService.login(username, password);
             
             if (result.user) {
                 messageDiv.className = 'message success';
