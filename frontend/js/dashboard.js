@@ -1,6 +1,7 @@
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Dashboard initialized');
     await checkAuth();
     await loadUserData();
     await updateServicesStatus();
@@ -14,29 +15,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkAuth() {
     const isAuthenticated = await API.AuthService.verify();
     if (!isAuthenticated) {
+        console.log('Not authenticated, redirecting to login');
         window.location.href = '/index.html';
     }
 }
 
 async function loadUserData() {
     currentUser = await API.getCurrentUser();
+    console.log('Current user:', currentUser);
+    
     if (currentUser) {
         document.getElementById('userName').textContent = currentUser.username;
-        document.getElementById('userEmail').textContent = currentUser.email;
-        document.getElementById('userCreated').textContent = `Зарегистрирован: ${formatDate(currentUser.created_at)}`;
+        document.getElementById('userEmail').textContent = currentUser.email || 'Email не указан';
+        if (currentUser.created_at) {
+            document.getElementById('userCreated').textContent = `Зарегистрирован: ${formatDate(currentUser.created_at)}`;
+        }
         document.getElementById('profileUsername').value = currentUser.username;
-        document.getElementById('profileEmail').value = currentUser.email;
+        document.getElementById('profileEmail').value = currentUser.email || '';
     }
 }
 
 async function updateServicesStatus() {
     const status = await API.checkAllServicesHealth();
     const statusHtml = `
-        <span class="service-status ${status.auth ? 'status-healthy' : 'status-unhealthy'}" title="Auth"></span>
-        <span class="service-status ${status.users ? 'status-healthy' : 'status-unhealthy'}" title="Users"></span>
-        <span class="service-status ${status.orders ? 'status-healthy' : 'status-unhealthy'}" title="Orders"></span>
+        <span class="service-status ${status.auth ? 'status-healthy' : 'status-unhealthy'}" title="Auth Service"></span>
+        <span class="service-status ${status.users ? 'status-healthy' : 'status-unhealthy'}" title="Users Service"></span>
+        <span class="service-status ${status.orders ? 'status-healthy' : 'status-unhealthy'}" title="Orders Service"></span>
     `;
-    document.getElementById('serviceStatus').innerHTML = statusHtml;
+    const statusContainer = document.getElementById('serviceStatus');
+    if (statusContainer) {
+        statusContainer.innerHTML = statusHtml;
+    }
+    
+    // Показываем предупреждение если какой-то сервис недоступен
+    if (!status.users) {
+        console.warn('Users service is unavailable');
+        showMessage('⚠️ Users service недоступен, некоторые функции ограничены', 'error');
+    }
+    if (!status.orders) {
+        console.warn('Orders service is unavailable');
+        showMessage('⚠️ Orders service недоступен', 'error');
+    }
 }
 
 function initTabs() {
@@ -56,92 +75,113 @@ function initTabs() {
 }
 
 function initEventListeners() {
-    // Обновление статуса сервисов
-    document.getElementById('refreshStatusBtn').addEventListener('click', updateServicesStatus);
+    document.getElementById('refreshStatusBtn')?.addEventListener('click', updateServicesStatus);
+    document.getElementById('logoutBtn')?.addEventListener('click', () => API.AuthService.logout());
     
-    // Выход
-    document.getElementById('logoutBtn').addEventListener('click', () => API.AuthService.logout());
-    
-    // Создание заказа
+    // Модальное окно создания заказа
     const modal = document.getElementById('orderModal');
-    document.getElementById('createOrderBtn').onclick = () => modal.style.display = 'block';
-    document.querySelector('#orderModal .close').onclick = () => modal.style.display = 'none';
+    const createBtn = document.getElementById('createOrderBtn');
+    const closeBtn = document.querySelector('#orderModal .close');
     
-    document.getElementById('createOrderForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const total_amount = parseFloat(document.getElementById('orderAmount').value);
-        
-        if (isNaN(total_amount) || total_amount < 1) {
-            showMessage('Сумма должна быть больше 0', 'error');
-            return;
-        }
-        
-        try {
-            const result = await API.OrdersService.createOrder(total_amount);
-            if (result.order_id) {
-                modal.style.display = 'none';
-                document.getElementById('createOrderForm').reset();
-                await loadOrders();
-                showMessage('Заказ успешно создан!', 'success');
+    if (createBtn) {
+        createBtn.onclick = () => modal.style.display = 'block';
+    }
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.style.display = 'none';
+    }
+    
+    // Форма создания заказа
+    const createForm = document.getElementById('createOrderForm');
+    if (createForm) {
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const total_amount = parseFloat(document.getElementById('orderAmount').value);
+            
+            if (isNaN(total_amount) || total_amount < 1) {
+                showMessage('Сумма должна быть больше 0', 'error');
+                return;
             }
-        } catch (error) {
-            showMessage(error.message, 'error');
-        }
-    });
+            
+            try {
+                const result = await API.OrdersService.createOrder(total_amount);
+                if (result.order_id) {
+                    modal.style.display = 'none';
+                    createForm.reset();
+                    await loadOrders();
+                    showMessage('Заказ успешно создан!', 'success');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        });
+    }
     
-    // Обновление статуса заказа
+    // Модальное окно статуса
     const statusModal = document.getElementById('statusModal');
-    document.querySelector('#statusModal .close-status').onclick = () => statusModal.style.display = 'none';
+    const closeStatusBtn = document.querySelector('#statusModal .close-status');
+    if (closeStatusBtn) {
+        closeStatusBtn.onclick = () => statusModal.style.display = 'none';
+    }
     
-    document.getElementById('statusForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const orderId = document.getElementById('statusOrderId').value;
-        const status = document.getElementById('orderStatus').value;
-        
-        try {
-            await API.OrdersService.updateOrderStatus(orderId, status);
-            statusModal.style.display = 'none';
-            await loadOrders();
-            showMessage('Статус заказа обновлён', 'success');
-        } catch (error) {
-            showMessage(error.message, 'error');
-        }
-    });
+    // Форма обновления статуса
+    const statusForm = document.getElementById('statusForm');
+    if (statusForm) {
+        statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('statusOrderId').value;
+            const status = document.getElementById('orderStatus').value;
+            
+            try {
+                await API.OrdersService.updateOrderStatus(orderId, status);
+                statusModal.style.display = 'none';
+                await loadOrders();
+                showMessage('Статус заказа обновлён', 'success');
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        });
+    }
     
     // Обновление профиля
-    document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newUsername = document.getElementById('profileUsername').value;
-        const newEmail = document.getElementById('profileEmail').value;
-        
-        try {
-            await API.UsersService.updateProfile(currentUser.id, {
-                username: newUsername,
-                email: newEmail
-            });
-            await loadUserData();
-            showMessage('Профиль обновлён!', 'success');
-        } catch (error) {
-            showMessage(error.message, 'error');
-        }
-    });
+    const profileForm = document.getElementById('updateProfileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newUsername = document.getElementById('profileUsername').value;
+            const newEmail = document.getElementById('profileEmail').value;
+            
+            try {
+                await API.UsersService.updateProfile(currentUser.id, {
+                    username: newUsername,
+                    email: newEmail
+                });
+                await loadUserData();
+                showMessage('Профиль обновлён!', 'success');
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        });
+    }
     
     // Удаление аккаунта
-    document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
-        if (confirm('⚠️ ВНИМАНИЕ! Это действие НЕОБРАТИМО. Вы уверены, что хотите удалить аккаунт?')) {
-            if (confirm('ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ! Все ваши заказы будут удалены. Продолжить?')) {
-                try {
-                    await API.UsersService.deleteAccount(currentUser.id);
-                    await API.AuthService.logout();
-                } catch (error) {
-                    showMessage(error.message, 'error');
+    const deleteBtn = document.getElementById('deleteAccountBtn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm('⚠️ ВНИМАНИЕ! Это действие НЕОБРАТИМО. Вы уверены, что хотите удалить аккаунт?')) {
+                if (confirm('ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ! Все ваши заказы будут удалены. Продолжить?')) {
+                    try {
+                        await API.UsersService.deleteAccount(currentUser.id);
+                        await API.AuthService.logout();
+                    } catch (error) {
+                        showMessage(error.message, 'error');
+                    }
                 }
             }
-        }
-    });
+        });
+    }
     
     // API Тесты
-    document.getElementById('testGetUsers').addEventListener('click', async () => {
+    document.getElementById('testGetUsers')?.addEventListener('click', async () => {
         try {
             const users = await API.UsersService.getAllUsers();
             document.getElementById('resultGetUsers').textContent = JSON.stringify(users, null, 2);
@@ -150,7 +190,7 @@ function initEventListeners() {
         }
     });
     
-    document.getElementById('testGetOrders').addEventListener('click', async () => {
+    document.getElementById('testGetOrders')?.addEventListener('click', async () => {
         try {
             const orders = await API.OrdersService.getUserOrders(currentUser.id);
             document.getElementById('resultGetOrders').textContent = JSON.stringify(orders, null, 2);
@@ -159,7 +199,7 @@ function initEventListeners() {
         }
     });
     
-    document.getElementById('testCreateOrder').addEventListener('click', async () => {
+    document.getElementById('testCreateOrder')?.addEventListener('click', async () => {
         try {
             const result = await API.OrdersService.createOrder(5000);
             document.getElementById('resultCreateOrder').textContent = JSON.stringify(result, null, 2);
@@ -200,7 +240,6 @@ async function loadOrders(statusFilter = null) {
                 <div class="order-details">
                     <p><strong>💰 Сумма:</strong> ${formatPrice(order.total_amount)} ₽</p>
                     <p><strong>📅 Дата создания:</strong> ${formatDate(order.created_at)}</p>
-                    <p><strong>🆔 ID заказа:</strong> ${order.id}</p>
                 </div>
                 <div class="order-actions">
                     <button class="btn-status" onclick="openStatusModal(${order.id}, '${order.status}')">✏️ Изменить статус</button>
@@ -237,7 +276,7 @@ async function loadAllUsers() {
         const container = document.getElementById('allUsersList');
         
         if (!users || users.length === 0) {
-            container.innerHTML = '<div class="loading">Нет пользователей</div>';
+            container.innerHTML = '<div class="loading">📋 Нет пользователей или сервис users недоступен</div>';
             return;
         }
         
@@ -246,7 +285,8 @@ async function loadAllUsers() {
                 <div>
                     <strong>${escapeHtml(user.username)}</strong><br>
                     <small>📧 ${escapeHtml(user.email)}</small><br>
-                    <small>🆔 ID: ${user.id} | 📅 ${formatDate(user.created_at)}</small>
+                    <small>🆔 ID: ${user.id}</small>
+                    ${user.created_at ? `<br><small>📅 ${formatDate(user.created_at)}</small>` : ''}
                 </div>
                 ${user.id === currentUser?.id ? '<span class="status-badge" style="background:#667eea; color:white;">Это вы</span>' : ''}
             </div>
@@ -254,7 +294,7 @@ async function loadAllUsers() {
         
     } catch (error) {
         console.error('Error loading users:', error);
-        document.getElementById('allUsersList').innerHTML = '<div class="loading">⚠️ Ошибка загрузки пользователей</div>';
+        document.getElementById('allUsersList').innerHTML = '<div class="loading">⚠️ Ошибка загрузки пользователей. Убедитесь, что users сервис запущен.</div>';
     }
 }
 
@@ -294,14 +334,18 @@ function formatPrice(amount) {
 
 function formatDate(dateString) {
     if (!dateString) return '—';
-    const date = new Date(dateString);
-    return date.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch {
+        return dateString;
+    }
 }
 
 function escapeHtml(str) {

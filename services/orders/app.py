@@ -108,7 +108,7 @@ def check_token(func):
     return wrapper
 
 
-@app.route("/orders", methods=["POST"])
+@app.route("/", methods=["POST"])
 @check_token
 def create_order():
     data = request.get_json()
@@ -166,7 +166,7 @@ def create_order():
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/orders/<order_id>", methods=["GET"])
+@app.route("/<order_id>", methods=["GET"])
 @check_token
 def get_order(order_id):
     try:
@@ -201,7 +201,7 @@ def get_order(order_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/orders/user/<user_id>", methods=["GET"])
+@app.route("/user/<user_id>", methods=["GET"])
 @check_token
 def get_users_orders(user_id):
     try:
@@ -237,7 +237,7 @@ def get_users_orders(user_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/orders/<order_id>", methods=["PUT"])
+@app.route("/<order_id>", methods=["PUT"])
 @check_token
 def change_order_status(order_id):
     data = request.get_json()
@@ -306,7 +306,7 @@ def change_order_status(order_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/orders/<order_id>", methods=["DELETE"])
+@app.route("/<order_id>", methods=["DELETE"])
 @check_token
 def delete_order(order_id):
     try:

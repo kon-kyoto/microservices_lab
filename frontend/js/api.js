@@ -7,6 +7,7 @@ const API_CONFIG = {
 
 // Глобальные настройки для fetch с cookies
 const fetchWithCredentials = (url, options = {}) => {
+    console.log(`[API Request] ${options.method || 'GET'} ${url}`);
     return fetch(url, {
         ...options,
         credentials: 'include',
@@ -29,7 +30,9 @@ class APIClient {
         
         try {
             const response = await fetchWithCredentials(url, options);
+            console.log(`[API Response] ${response.status} ${url}`);
             
+            // 401 - не авторизован
             if (response.status === 401) {
                 if (window.location.pathname !== '/index.html') {
                     this.logout();
@@ -37,38 +40,47 @@ class APIClient {
                 throw new Error('Сессия истекла');
             }
             
+            // 403 - доступ запрещен
             if (response.status === 403) {
                 const data = await response.json().catch(() => ({}));
                 throw new Error(data.error || 'Доступ запрещен');
             }
             
+            // 404 - не найдено
             if (response.status === 404) {
                 const data = await response.json().catch(() => ({}));
-                throw new Error(data.error || 'Ресурс не найден');
+                console.warn(`[404] ${url} - ${data.error || 'Not found'}`);
+                return null; // Возвращаем null вместо ошибки
             }
             
+            // 400 - плохой запрос
             if (response.status === 400) {
                 const data = await response.json();
                 throw new Error(data.error || 'Неверные данные');
             }
             
+            // 409 - конфликт
             if (response.status === 409) {
                 const data = await response.json();
                 throw new Error(data.error || 'Конфликт данных');
             }
             
+            // 429 - слишком много запросов
             if (response.status === 429) {
                 throw new Error('Слишком много запросов, попробуйте позже');
             }
             
+            // 500 - внутренняя ошибка сервера
             if (response.status === 500) {
                 throw new Error('Внутренняя ошибка сервера');
             }
             
+            // 503 - сервис недоступен
             if (response.status === 503) {
                 throw new Error('Сервис временно недоступен');
             }
             
+            // 204 No Content - нет тела ответа
             if (response.status === 204) {
                 return { success: true };
             }
@@ -151,11 +163,15 @@ const AuthService = {
     },
 
     async verify() {
-        const response = await fetch(`${API_CONFIG.auth}/verify`, {
-            method: 'POST',
-            credentials: 'include'
-        });
-        return response.status === 200;
+        try {
+            const response = await fetch(`${API_CONFIG.auth}/verify`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            return response.status === 200;
+        } catch {
+            return false;
+        }
     },
 
     async health() {
@@ -173,12 +189,14 @@ const AuthService = {
 
 // ============ USERS SERVICE ============
 const UsersService = {
-    // GET /users/{id} - получить профиль пользователя
     async getProfile(userId) {
-        return await usersAPI.request(`/${userId}`, { method: 'GET' });
+        const result = await usersAPI.request(`/${userId}`, { method: 'GET' });
+        if (!result) {
+            throw new Error('Пользователь не найден');
+        }
+        return result;
     },
 
-    // PUT /users/{id} - обновить профиль
     async updateProfile(userId, userData) {
         return await usersAPI.request(`/${userId}`, {
             method: 'PUT',
@@ -186,14 +204,14 @@ const UsersService = {
         });
     },
 
-    // DELETE /users/{id} - удалить аккаунт
     async deleteAccount(userId) {
         return await usersAPI.request(`/${userId}`, { method: 'DELETE' });
     },
 
-    // GET /users - получить всех пользователей
     async getAllUsers() {
-        return await usersAPI.request('', { method: 'GET' });
+        const result = await usersAPI.request('', { method: 'GET' });
+        // Если сервис вернул null (404), возвращаем пустой массив
+        return result || [];
     },
 
     async health() {
@@ -211,7 +229,6 @@ const UsersService = {
 
 // ============ ORDERS SERVICE ============
 const OrdersService = {
-    // POST /orders - создать заказ
     async createOrder(total_amount) {
         return await ordersAPI.request('', {
             method: 'POST',
@@ -219,18 +236,15 @@ const OrdersService = {
         });
     },
 
-    // GET /orders/{id} - получить заказ по ID
     async getOrder(orderId) {
-        const order = await ordersAPI.request(`/${orderId}`, { method: 'GET' });
-        return order;
+        return await ordersAPI.request(`/${orderId}`, { method: 'GET' });
     },
 
-    // GET /orders/user/{id} - получить все заказы пользователя
     async getUserOrders(userId) {
-        return await ordersAPI.request(`/user/${userId}`, { method: 'GET' });
+        const orders = await ordersAPI.request(`/user/${userId}`, { method: 'GET' });
+        return orders || [];
     },
 
-    // PUT /orders/{id} - обновить статус заказа
     async updateOrderStatus(orderId, status) {
         return await ordersAPI.request(`/${orderId}`, {
             method: 'PUT',
@@ -238,7 +252,6 @@ const OrdersService = {
         });
     },
 
-    // DELETE /orders/{id} - отменить/удалить заказ
     async cancelOrder(orderId) {
         return await ordersAPI.request(`/${orderId}`, { method: 'DELETE' });
     },
@@ -276,7 +289,13 @@ async function getCurrentUser() {
         };
     } catch (error) {
         console.error('Failed to get user info:', error);
-        return null;
+        // Возвращаем базовую информацию, если профиль не получен
+        return {
+            id: userId,
+            username: `User ${userId}`,
+            email: 'unknown@example.com',
+            created_at: null
+        };
     }
 }
 
@@ -286,6 +305,7 @@ async function checkAllServicesHealth() {
         users: await UsersService.health(),
         orders: await OrdersService.health()
     };
+    console.log('Services health:', results);
     return results;
 }
 

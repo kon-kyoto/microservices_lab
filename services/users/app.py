@@ -112,7 +112,7 @@ def get_db_cursor():
         conn.close()
 
 
-@app.route("/users/<find_id>", methods=["GET"])
+@app.route("/<find_id>", methods=["GET"])
 @check_token
 def get_user(find_id):
     user_id = g.get("user_id")
@@ -164,7 +164,7 @@ def get_user(find_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/users/<find_id>", methods=["PUT"])
+@app.route("/<find_id>", methods=["PUT"])
 @check_token
 def user_change(find_id):
     data = request.get_json()
@@ -256,7 +256,7 @@ def user_change(find_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/users/<find_id>", methods=["DELETE"])
+@app.route("/<find_id>", methods=["DELETE"])
 @check_token
 def user_delete(find_id):
     user_id = g.get("user_id")
@@ -301,7 +301,7 @@ def user_delete(find_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/users", methods=["GET"])
+@app.route("/", methods=["GET"])
 @check_token
 def users_list():
     user_id = g.get("user_id")
