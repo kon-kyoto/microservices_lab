@@ -51,6 +51,8 @@ services:
       - NET_BIND_SERVICE # only ports < 1024
       - CHOWN
       - DAC_OVERRIDE
+      - SETUID
+      - SETGID
     read_only: true
 
   postgres:
