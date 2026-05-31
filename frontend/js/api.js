@@ -35,15 +35,8 @@ class APIClient {
             
             // Если 401, пробуем обновить токен или разлогиниться
             if (response.status === 401) {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    // Повторяем запрос с обновлённой сессией
-                    const retryResponse = await fetchWithCredentials(url, options);
-                    return await retryResponse.json();
-                } else {
-                    this.logout();
-                    throw new Error('Сессия истекла, войдите снова');
-                }
+		    this.logout();
+		    throw new Error('Сессия истекла, войдите снова');
             }
             
             // Для пустых ответов (204 No Content)
@@ -55,26 +48,6 @@ class APIClient {
         } catch (error) {
             console.error(`API Error (${this.serviceName}):`, error);
             throw error;
-        }
-    }
-
-    async refreshToken() {
-        try {
-            const response = await fetchWithCredentials(`${API_CONFIG.auth}/refresh`, {
-                method: 'POST'
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.user) {
-                    currentUser = data.user;
-                    localStorage.setItem('user_data', JSON.stringify(data.user));
-                }
-                return true;
-            }
-            return false;
-        } catch {
-            return false;
         }
     }
 
@@ -115,19 +88,13 @@ const AuthService = {
         return await response.json();
     },
 
-    async login(email, password) {
+    async login(username, password) {
         const response = await fetchWithCredentials(`${API_CONFIG.auth}/login`, {
             method: 'POST',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({username, password })
         });
         
-        const data = await response.json();
-        
-        if (response.ok && data.user) {
-            currentUser = data.user;
-            localStorage.setItem('user_data', JSON.stringify(data.user));
-        }
-        return data;
+        return response;
     },
 
     async logout() {

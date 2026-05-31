@@ -65,7 +65,7 @@ if (document.getElementById('loginForm')) {
         try {
             const result = await API.AuthService.login(username, password);
             
-            if (result.user) {
+            if (result.ok) {
                 messageDiv.className = 'message success';
                 messageDiv.textContent = 'Вход выполнен! Перенаправление...';
                 
