@@ -589,3 +589,6 @@ body {
         transform: translateX(100px);
     }
 } 
+
+.status-shipped { background: #cfe2ff; color: #084298; }
+.status-delivered { background: #d1e7dd; color: #0f5132; }

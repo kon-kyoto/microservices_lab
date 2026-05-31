@@ -210,7 +210,7 @@ def login():
 
         redis_client.delete(rate_key)
 
-        response = make_response(jsonify({"message": "Login successful"}))
+        response = make_response(jsonify({"message": "Login successful", "user_id": user_id}))
         response.set_cookie(
             "access_token",
             token,
