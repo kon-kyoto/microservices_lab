@@ -75,7 +75,7 @@ def users_list(user, expected_status=200):
         return False
 
     cookie = {"access_token": user.token}
-    response = requests.get("http://localhost:80/api/users", cookies=cookie, timeout=10)
+    response = requests.get("http://localhost:80/api/users/", cookies=cookie, timeout=10)
 
     if response.status_code == 200:
         data = response.json()

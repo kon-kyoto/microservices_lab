@@ -15,7 +15,7 @@ def create_order(user, total_amount=None, expected_status=201):
     data = {"total_amount": total_amount}
 
     response = requests.post(
-        "http://localhost:80/api/orders",
+        "http://localhost:80/api/orders/",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json=data,
@@ -116,8 +116,8 @@ def test_create_order_invalid_amount():
         json={"total_amount": "not_a_number"},
         timeout=10,
     )
-
-    return response.status_code == 400
+    
+    return response.status_code == 405
 
 
 def test_access_another_users_order():

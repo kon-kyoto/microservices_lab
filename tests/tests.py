@@ -138,10 +138,9 @@ class TestLogout:
 
         cookies = {"access_token": user.token}
         response = requests.post(
-            "http://localhost:5001/verify", cookies=cookies, timeout=10
+                "http://localhost:80/api/auth/verify", cookies=cookies, timeout=10
         )
-        assert response.status_code == 401, "Token should be invalid after logout"
-
+        assert response.status_code == 401
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

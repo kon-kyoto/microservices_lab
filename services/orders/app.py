@@ -135,9 +135,9 @@ def create_order():
             return jsonify({"error": "total_amount must be at least 1"}), 400
     except (TypeError, ValueError):
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - total_amount type error: {total_amount}"
+            f"WARNING [405] ip: {request.remote_addr} user_id: {g.user_id} - total_amount type error: {total_amount}"
         )
-        return jsonify({"error": "total_amount must be a valid integer"}), 400
+        return jsonify({"error": "total_amount must be a valid integer"}), 405
 
     try:
         with get_db_cursor() as cur:
