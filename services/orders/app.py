@@ -50,6 +50,11 @@ def get_db_cursor():
     finally:
         conn.close()
 
+def get_client_ip(request):
+    forwarded = request.headers.get('X-Forwarded-For')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr
 
 def check_token(func):
     @wraps(func)
@@ -58,7 +63,7 @@ def check_token(func):
 
         if not token:
             app.logger.warning(
-                f"WARNING [401] ip: {request.remote_addr} - Missing token for {request.method} {request.path}"
+                f"WARNING [401] ip: {get_client_ip(request)} - Missing token for {request.method} {request.path}"
             )
             return jsonify({"error": "Authentication required"}), 401
 
@@ -71,7 +76,7 @@ def check_token(func):
 
             if response.status_code != 200:
                 app.logger.warning(
-                    f"WARNING [401] ip: {request.remote_addr} - Invalid token for {request.method} {request.path}"
+                    f"WARNING [401] ip: {get_client_ip(request)} - Invalid token for {request.method} {request.path}"
                 )
                 return jsonify({"error": "Invalid or expired token"}), 401
 
@@ -79,29 +84,29 @@ def check_token(func):
             g.user_id = user_data.get("user_id")
 
             app.logger.info(
-                f"INFO [200] ip: {request.remote_addr} user_id: {g.user_id} - Token verified for {request.method} {request.path}"
+                f"INFO [200] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Token verified for {request.method} {request.path}"
             )
 
             return func(*args, **kwargs)
 
         except requests.exceptions.ConnectionError:
             app.logger.error(
-                f"ERROR [503] ip: {request.remote_addr} - Cannot connect to auth_service for {request.path}"
+                f"ERROR [503] ip: {get_client_ip(request)} - Cannot connect to auth_service for {request.path}"
             )
             return jsonify({"error": "Authentication service unavailable"}), 503
         except requests.exceptions.Timeout:
             app.logger.error(
-                f"ERROR [504] ip: {request.remote_addr} - Auth service timeout for {request.path}"
+                f"ERROR [504] ip: {get_client_ip(request)} - Auth service timeout for {request.path}"
             )
             return jsonify({"error": "Authentication service timeout"}), 504
         except requests.exceptions.RequestException as e:
             app.logger.error(
-                f"ERROR [401] ip: {request.remote_addr} - Auth service request error: {str(e)}"
+                f"ERROR [401] ip: {get_client_ip(request)} - Auth service request error: {str(e)}"
             )
             return jsonify({"error": "Authentication failed"}), 401
         except Exception as e:
             app.logger.error(
-                f"ERROR [500] ip: {request.remote_addr} - Unexpected error in check_token: {str(e)}"
+                f"ERROR [500] ip: {get_client_ip(request)} - Unexpected error in check_token: {str(e)}"
             )
             return jsonify({"error": "Internal server error"}), 500
 
@@ -114,7 +119,7 @@ def create_order():
     data = request.get_json()
     if not data:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - No JSON body"
+            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - No JSON body"
         )
         return jsonify({"error": "Request body is required"}), 400
 
@@ -122,7 +127,7 @@ def create_order():
 
     if total_amount is None:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - total_amount is required"
+            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - total_amount is required"
         )
         return jsonify({"error": "total_amount is required"}), 400
 
@@ -130,12 +135,12 @@ def create_order():
         total_amount = int(total_amount)
         if total_amount < 1:
             app.logger.warning(
-                f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - Invalid total_amount: {total_amount} (must be >= 1)"
+                f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Invalid total_amount: {total_amount} (must be >= 1)"
             )
             return jsonify({"error": "total_amount must be at least 1"}), 400
     except (TypeError, ValueError):
         app.logger.warning(
-            f"WARNING [405] ip: {request.remote_addr} user_id: {g.user_id} - total_amount type error: {total_amount}"
+            f"WARNING [405] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - total_amount type error: {total_amount}"
         )
         return jsonify({"error": "total_amount must be a valid integer"}), 405
 
@@ -143,12 +148,12 @@ def create_order():
         with get_db_cursor() as cur:
             cur.execute(
                 "INSERT INTO orders (user_id, total_amount, status) VALUES (%s, %s, 'pending') RETURNING id",
-                (g.user_id, total_amount),
+                (g.get('user_id'), total_amount),
             )
             order_id = cur.fetchone()["id"]
 
         app.logger.info(
-            f"INFO [201] ip: {request.remote_addr} user_id: {g.user_id} - Order created successfully, order_id: {order_id}, amount: {total_amount}"
+            f"INFO [201] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order created successfully, order_id: {order_id}, amount: {total_amount}"
         )
         return (
             jsonify({"message": "Order created successfully", "order_id": order_id}),
@@ -156,12 +161,12 @@ def create_order():
         )
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Database error creating order: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Database error creating order: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Unexpected error creating order: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Unexpected error creating order: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -175,28 +180,28 @@ def get_order(order_id):
             data_row = cur.fetchone()
             if not data_row:
                 app.logger.warning(
-                    f"WARNING [404] ip: {request.remote_addr} user_id: {g.user_id} - Order not found: {order_id}"
+                    f"WARNING [404] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order not found: {order_id}"
                 )
                 return jsonify({"error": "Order not found"}), 404
 
-            if data_row["user_id"] != g.user_id:
+            if data_row["user_id"] != g.get('user_id'):
                 app.logger.warning(
-                    f"WARNING [403] ip: {request.remote_addr} user_id: {g.user_id} - Access denied to order {order_id} (owner: {data_row['user_id']})"
+                    f"WARNING [403] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Access denied to order {order_id} (owner: {data_row['user_id']})"
                 )
                 return jsonify({"error": "Access denied"}), 403
 
             app.logger.info(
-                f"INFO [200] ip: {request.remote_addr} user_id: {g.user_id} - Retrieved order {order_id}"
+                f"INFO [200] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Retrieved order {order_id}"
             )
             return jsonify(data_row), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Database error getting order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Database error getting order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Unexpected error getting order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Unexpected error getting order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -205,9 +210,9 @@ def get_order(order_id):
 @check_token
 def get_users_orders(user_id):
     try:
-        if int(user_id) != g.user_id:
+        if int(user_id) != g.get('user_id'):
             app.logger.warning(
-                f"WARNING [403] ip: {request.remote_addr} user_id: {g.user_id} - Access denied to view orders of user {user_id}"
+                f"WARNING [403] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Access denied to view orders of user {user_id}"
             )
             return (
                 jsonify({"error": "Access denied. You can only view your own orders."}),
@@ -222,17 +227,17 @@ def get_users_orders(user_id):
             data_rows = cur.fetchall()
 
         app.logger.info(
-            f"INFO [200] ip: {request.remote_addr} user_id: {g.user_id} - Retrieved {len(data_rows)} orders for user {user_id}"
+            f"INFO [200] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Retrieved {len(data_rows)} orders for user {user_id}"
         )
         return jsonify(data_rows), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Database error getting user orders: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Database error getting user orders: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Unexpected error getting user orders: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Unexpected error getting user orders: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -243,7 +248,7 @@ def change_order_status(order_id):
     data = request.get_json()
     if not data:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - No JSON body for status update"
+            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - No JSON body for status update"
         )
         return jsonify({"error": "Request body is required"}), 400
 
@@ -252,13 +257,13 @@ def change_order_status(order_id):
 
     if not status:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - status field is required"
+            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - status field is required"
         )
         return jsonify({"error": "status is required"}), 400
 
     if status not in valid_statuses:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} user_id: {g.user_id} - Invalid status: {status}, allowed: {valid_statuses}"
+            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Invalid status: {status}, allowed: {valid_statuses}"
         )
         return (
             jsonify(
@@ -276,13 +281,13 @@ def change_order_status(order_id):
 
             if not order:
                 app.logger.warning(
-                    f"WARNING [404] ip: {request.remote_addr} user_id: {g.user_id} - Order {order_id} not found for status update"
+                    f"WARNING [404] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order {order_id} not found for status update"
                 )
                 return jsonify({"error": "Order not found"}), 404
 
-            if order["user_id"] != g.user_id:
+            if order["user_id"] != g.get('user_id'):
                 app.logger.warning(
-                    f"WARNING [403] ip: {request.remote_addr} user_id: {g.user_id} - Access denied to update order {order_id}"
+                    f"WARNING [403] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Access denied to update order {order_id}"
                 )
                 return jsonify({"error": "Access denied"}), 403
 
@@ -291,17 +296,17 @@ def change_order_status(order_id):
             )
 
             app.logger.info(
-                f"INFO [200] ip: {request.remote_addr} user_id: {g.user_id} - Order {order_id} status changed from {order['status']} to {status}"
+                f"INFO [200] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order {order_id} status changed from {order['status']} to {status}"
             )
             return jsonify({"message": "Order status updated successfully"}), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Database error updating order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Database error updating order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Unexpected error updating order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Unexpected error updating order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -316,30 +321,30 @@ def delete_order(order_id):
 
             if not order:
                 app.logger.warning(
-                    f"WARNING [404] ip: {request.remote_addr} user_id: {g.user_id} - Order {order_id} not found for deletion"
+                    f"WARNING [404] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order {order_id} not found for deletion"
                 )
                 return jsonify({"error": "Order not found"}), 404
 
-            if order["user_id"] != g.user_id:
+            if order["user_id"] != g.get('user_id'):
                 app.logger.warning(
-                    f"WARNING [403] ip: {request.remote_addr} user_id: {g.user_id} - Access denied to delete order {order_id}"
+                    f"WARNING [403] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Access denied to delete order {order_id}"
                 )
                 return jsonify({"error": "Access denied"}), 403
 
             cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
 
             app.logger.info(
-                f"INFO [204] ip: {request.remote_addr} user_id: {g.user_id} - Order {order_id} deleted successfully"
+                f"INFO [204] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Order {order_id} deleted successfully"
             )
             return "", 204
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Database error deleting order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Database error deleting order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} user_id: {g.user_id} - Unexpected error deleting order {order_id}: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Unexpected error deleting order {order_id}: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -349,11 +354,11 @@ def health():
     try:
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
-        app.logger.info(f"INFO [200] ip: {request.remote_addr} - Health check passed")
+        app.logger.info(f"INFO [200] ip: {get_client_ip(request)} - Health check passed")
         return jsonify({"status": "healthy"}), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [503] ip: {request.remote_addr} - Health check failed - Database error: {str(e)}"
+            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed - Database error: {str(e)}"
         )
         return (
             jsonify({"status": "unhealthy", "message": "Database connection failed"}),
@@ -361,7 +366,7 @@ def health():
         )
     except Exception as e:
         app.logger.error(
-            f"ERROR [503] ip: {request.remote_addr} - Health check failed: {str(e)}"
+            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed: {str(e)}"
         )
         return jsonify({"status": "unhealthy", "message": str(e)}), 503
 

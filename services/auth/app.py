@@ -66,13 +66,18 @@ def get_db_cursor():
     finally:
         conn.close()
 
+def get_client_ip(request):
+    forwarded = request.headers.get('X-Forwarded-For')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr
 
 @app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
     if not data:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Request body is required"
+            f"WARNING [400] ip: {get_client_ip(request)} - Request body is required"
         )
         return jsonify({"error": "Request body is required"}), 400
 
@@ -82,7 +87,7 @@ def register():
 
     if not username or not password or not email:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Missing required fields"
+            f"WARNING [400] ip: {get_client_ip(request)} - Missing required fields"
         )
         return (
             jsonify({"error": "Missing required fields: username, email, password"}),
@@ -92,7 +97,7 @@ def register():
     email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     if not re.match(email_pattern, email):
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Invalid email format: {email}"
+            f"WARNING [400] ip: {get_client_ip(request)} - Invalid email format: {email}"
         )
         return jsonify({"error": "Invalid email format"}), 400
 
@@ -110,7 +115,7 @@ def register():
                 (user_id, password_hash.decode("utf-8")),
             )
             app.logger.info(
-                f"INFO [201] ip: {request.remote_addr} user_id: {user_id} - User created successfully"
+                f"INFO [201] ip: {get_client_ip(request)} user_id: {user_id} - User created successfully"
             )
             return (
                 jsonify({"message": "User created successfully", "user_id": user_id}),
@@ -118,12 +123,12 @@ def register():
             )
     except psycopg2.IntegrityError:
         app.logger.warning(
-            f"WARNING [409] ip: {request.remote_addr} - Username or email already exists: {username}/{email}"
+            f"WARNING [409] ip: {get_client_ip(request)} - Username or email already exists: {username}/{email}"
         )
         return jsonify({"error": "Username or email already exists"}), 409
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} - Registration error: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} - Registration error: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -133,7 +138,7 @@ def login():
     data = request.get_json()
     if not data:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Request body is required"
+            f"WARNING [400] ip: {get_client_ip(request)} - Request body is required"
         )
         return jsonify({"error": "Request body is required"}), 400
 
@@ -143,23 +148,23 @@ def login():
 
     if not password:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Password is required"
+            f"WARNING [400] ip: {get_client_ip(request)} - Password is required"
         )
         return jsonify({"error": "Password is required"}), 400
 
     if not email and not username:
         app.logger.warning(
-            f"WARNING [400] ip: {request.remote_addr} - Either email or username is required"
+            f"WARNING [400] ip: {get_client_ip(request)} - Either email or username is required"
         )
         return jsonify({"error": "Either email or username is required"}), 400
 
-    rate_key = f"login_rate:{request.remote_addr}"
+    rate_key = f"login_rate:{get_client_ip(request)}"
     att = redis_client.incr(rate_key)
     if att == 1:
         redis_client.expire(rate_key, int(os.getenv("STOP_LOGIN", 300)))
     if att > 10:
         app.logger.warning(
-            f"WARNING [429] ip: {request.remote_addr} - Too many login attempts (attempts: {att})"
+            f"WARNING [429] ip: {get_client_ip(request)} - Too many login attempts (attempts: {att})"
         )
         return jsonify({"error": "Too many login attempts. Try again later."}), 429
 
@@ -175,7 +180,7 @@ def login():
             user_row = cur.fetchone()
             if not user_row:
                 app.logger.warning(
-                    f"WARNING [401] ip: {request.remote_addr} - Invalid credentials - user not found"
+                    f"WARNING [401] ip: {get_client_ip(request)} - Invalid credentials - user not found"
                 )
                 return jsonify({"error": "Invalid credentials"}), 401
 
@@ -187,7 +192,7 @@ def login():
             password_row = cur.fetchone()
             if not password_row:
                 app.logger.warning(
-                    f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - no password hash"
+                    f"WARNING [401] ip: {get_client_ip(request)} user_id: {user_id} - Invalid credentials - no password hash"
                 )
                 return jsonify({"error": "Invalid credentials"}), 401
 
@@ -195,7 +200,7 @@ def login():
                 password.encode("utf-8"), password_row["password_hash"].encode("utf-8")
             ):
                 app.logger.warning(
-                    f"WARNING [401] ip: {request.remote_addr} user_id: {user_id} - Invalid credentials - wrong password"
+                    f"WARNING [401] ip: {get_client_ip(request)} user_id: {user_id} - Invalid credentials - wrong password"
                 )
                 return jsonify({"error": "Invalid credentials"}), 401
 
@@ -213,22 +218,24 @@ def login():
         response = make_response(
             jsonify({"message": "Login successful", "user_id": user_id})
         )
+
+        secure_cookie = request.headers.get('X-Forwarded-Proto') == 'https'
         response.set_cookie(
             "access_token",
             token,
             httponly=True,
-            secure=False,
+            secure=secure_cookie,
             samesite="Lax",
             max_age=24 * 60 * 60,
         )
         app.logger.info(
-            f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Login successful"
+            f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Login successful"
         )
         return response, 200
 
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} - Login error: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} - Login error: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -239,7 +246,7 @@ def logout():
 
     if not token:
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - No token provided for logout"
+            f"WARNING [401] ip: {get_client_ip(request)} - No token provided for logout"
         )
         return jsonify({"error": "No token provided"}), 401
 
@@ -255,28 +262,28 @@ def logout():
         if ttl > 0:
             redis_client.setex(f"blacklist:{token}", ttl, "revoked")
             app.logger.info(
-                f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token blacklisted for {ttl} seconds"
+                f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Logout successful, token blacklisted for {ttl} seconds"
             )
         else:
             app.logger.info(
-                f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Logout successful, token already expired"
+                f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Logout successful, token already expired"
             )
 
         return jsonify({"message": "Logout completed"}), 200
 
     except jwt.ExpiredSignatureError:
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - Logout attempt with expired token"
+            f"WARNING [401] ip: {get_client_ip(request)} - Logout attempt with expired token"
         )
         return jsonify({"error": "Token already expired"}), 401
     except jwt.InvalidTokenError:
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - Logout attempt with invalid token"
+            f"WARNING [401] ip: {get_client_ip(request)} - Logout attempt with invalid token"
         )
         return jsonify({"error": "Invalid token"}), 401
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} - Logout error: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} - Logout error: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -287,13 +294,13 @@ def verify():
 
     if not token:
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - No token provided for verification"
+            f"WARNING [401] ip: {get_client_ip(request)} - No token provided for verification"
         )
         return jsonify({"error": "No token provided"}), 401
 
     if redis_client.exists(f"blacklist:{token}"):
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - Token has been revoked"
+            f"WARNING [401] ip: {get_client_ip(request)} - Token has been revoked"
         )
         return jsonify({"error": "Token has been revoked"}), 401
 
@@ -303,20 +310,20 @@ def verify():
         )
         user_id = jwt_data.get("user_id")
         app.logger.info(
-            f"INFO [200] ip: {request.remote_addr} user_id: {user_id} - Token verified successfully"
+            f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Token verified successfully"
         )
         return jsonify({"valid": True, "user_id": user_id}), 200
     except jwt.ExpiredSignatureError:
         app.logger.warning(
-            f"WARNING [401] ip: {request.remote_addr} - Token has expired"
+            f"WARNING [401] ip: {get_client_ip(request)} - Token has expired"
         )
         return jsonify({"error": "Token has expired"}), 401
     except jwt.InvalidTokenError:
-        app.logger.warning(f"WARNING [401] ip: {request.remote_addr} - Invalid token")
+        app.logger.warning(f"WARNING [401] ip: {get_client_ip(request)} - Invalid token")
         return jsonify({"error": "Invalid token"}), 401
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {request.remote_addr} - Verify error: {str(e)}"
+            f"ERROR [500] ip: {get_client_ip(request)} - Verify error: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -327,11 +334,11 @@ def health():
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
             redis_client.ping()
-        app.logger.info(f"INFO [200] ip: {request.remote_addr} - Health check passed")
+        app.logger.info(f"INFO [200] ip: {get_client_ip(request)} - Health check passed")
         return jsonify({"status": "healthy"}), 200
     except redis.ConnectionError as e:
         app.logger.error(
-            f"ERROR [503] ip: {request.remote_addr} - Health check failed - Redis error: {str(e)}"
+            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed - Redis error: {str(e)}"
         )
         return (
             jsonify({"status": "unhealthy", "message": "Redis connection failed"}),
@@ -339,7 +346,7 @@ def health():
         )
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [503] ip: {request.remote_addr} - Health check failed - Database error: {str(e)}"
+            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed - Database error: {str(e)}"
         )
         return (
             jsonify({"status": "unhealthy", "message": "Database connection failed"}),
@@ -347,7 +354,7 @@ def health():
         )
     except Exception as e:
         app.logger.error(
-            f"ERROR [503] ip: {request.remote_addr} - Health check failed: {str(e)}"
+            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed: {str(e)}"
         )
         return jsonify({"status": "unhealthy", "message": str(e)}), 503
 
