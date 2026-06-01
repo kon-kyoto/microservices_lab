@@ -12,7 +12,7 @@ def get_workers():
     else:
         return 1
 
-worckers = get_workers()
+workers = get_workers()
 threads = 2
 worker_class = 'gthread'
 bind = "0.0.0.0:5001"

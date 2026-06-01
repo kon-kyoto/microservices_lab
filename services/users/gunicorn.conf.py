@@ -12,7 +12,7 @@ def get_workers():
     else:
         return 1
 
-worckers = get_workers()
+workers = get_workers()
 threads = 2
 worker_class = 'gthread'
 bind = "0.0.0.0:5002"
@@ -30,4 +30,3 @@ access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 limit_request_line = 4094
 limit_request_fields = 100 
 limit_request_field_size = 8190
-
