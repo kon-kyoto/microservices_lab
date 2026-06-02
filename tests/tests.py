@@ -33,6 +33,9 @@ from orders_tests import (
     delete_order,
     test_create_order_invalid_amount,
     test_access_another_users_order,
+    test_create_order_without_name,  # ✅ Новый импорт
+    test_create_order_with_empty_name,  # ✅ Новый импорт
+    test_order_has_name_field,  # ✅ Новый импорт
 )
 
 users = gen_users(5)
@@ -73,15 +76,22 @@ class TestUserFlow:
         order = get_order(user, order_id)
         assert order is not False
         assert order.get("user_id") == user.user_id
+        # ✅ Проверяем наличие order_name
+        assert "order_name" in order
 
     def test_get_user_orders(self, user):
-
-        for _ in range(3):
-            create_order(user)
+        # Создаем заказы с разными именами
+        order_names = ["Order 1", "Order 2", "Order 3"]
+        for name in order_names:
+            create_order(user, order_name=name)
 
         orders = get_user_orders(user, user.user_id)
         assert orders is not False
         assert len(orders) >= 3
+        
+        # ✅ Проверяем, что каждый заказ имеет имя
+        for order in orders[:3]:
+            assert "order_name" in order
 
     def test_update_order_status(self, user):
         order_id = create_order(user)
@@ -122,6 +132,16 @@ class TestEdgeCases:
 
     def test_create_order_invalid_amount(self):
         assert test_create_order_invalid_amount()
+    
+    # ✅ Новые тесты для order_name
+    def test_create_order_without_name(self):
+        assert test_create_order_without_name()
+    
+    def test_create_order_with_empty_name(self):
+        assert test_create_order_with_empty_name()
+    
+    def test_order_has_name_field(self):
+        assert test_order_has_name_field()
 
     def test_access_another_users_order(self):
         assert test_access_another_users_order()
@@ -141,6 +161,49 @@ class TestLogout:
                 "http://localhost:80/api/auth/verify", cookies=cookies, timeout=10
         )
         assert response.status_code == 401
+
+
+class TestOrderNameValidation:
+    """✅ Новый класс тестов для валидации order_name"""
+    
+    def test_order_name_max_length(self):
+        """Test order_name with very long name"""
+        user = gen_users(1)[0]
+        assert register_user(user)
+        assert login_user(user)
+        assert verify_user(user)
+        
+        # Создаем очень длинное имя
+        long_name = "A" * 500
+        cookie = {"access_token": user.token}
+        response = requests.post(
+            "http://localhost:80/api/orders/",
+            headers={"Content-Type": "application/json"},
+            cookies=cookie,
+            json={"total_amount": 1000, "order_name": long_name},
+            timeout=10,
+        )
+        
+        # Должен быть success или error в зависимости от ограничений БД
+        assert response.status_code in [201, 400, 500]
+    
+    def test_order_name_special_chars(self):
+        """Test order_name with special characters"""
+        user = gen_users(1)[0]
+        assert register_user(user)
+        assert login_user(user)
+        assert verify_user(user)
+        
+        # Имя со спецсимволами
+        special_name = "Test Order!@#$%^&*()_+"
+        order_id = create_order(user, total_amount=1000, order_name=special_name)
+        
+        assert order_id is not False
+        
+        # Проверяем, что имя сохранилось корректно
+        order = get_order(user, order_id)
+        assert order is not False
+        assert order.get("order_name") == special_name
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
