@@ -148,7 +148,7 @@ def create_order():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                "INSERT INTO orders (user_id, order_name, total_amount, status) VALUES (%s, %s, 'pending') RETURNING id",
+                "INSERT INTO orders (user_id, order_name, total_amount, status) VALUES (%s, %s, %s, 'pending') RETURNING id",
                 (g.get('user_id'), order_name, total_amount),
             )
             order_id = cur.fetchone()["id"]

@@ -98,7 +98,7 @@ function initEventListeners() {
 	    const order_name = parseFloat(document.getElementById('orderName').value);
             const total_amount = parseFloat(document.getElementById('orderAmount').value);
             
-	    if (order_name ='') {
+	    if (!order_name || order_name.trim() ='') {
 		    showMessage('Название должно быть не пустым');
 		    return;
 	    }

@@ -17,7 +17,7 @@ CREATE TABLE auth_users (
 CREATE TABLE orders (
 	id SERIAL PRIMARY KEY,
 	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	order_name VARCHAR(100),
+	order_name  VARCHAR(100) NOT NULL,
 	total_amount DECIMAL(10,2),
 	status VARCHAR(50) DEFAULT 'pending',
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
