@@ -123,6 +123,7 @@ def create_order():
         )
         return jsonify({"error": "Request body is required"}), 400
 
+    order_name = data.get("order_name") 
     total_amount = data.get("total_amount")
 
     if total_amount is None:
@@ -147,8 +148,8 @@ def create_order():
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                "INSERT INTO orders (user_id, total_amount, status) VALUES (%s, %s, 'pending') RETURNING id",
-                (g.get('user_id'), total_amount),
+                "INSERT INTO orders (user_id, order_name, total_amount, status) VALUES (%s, %s, 'pending') RETURNING id",
+                (g.get('user_id'), order_name, total_amount),
             )
             order_id = cur.fetchone()["id"]
 

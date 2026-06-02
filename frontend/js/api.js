@@ -229,10 +229,10 @@ const UsersService = {
 
 // ============ ORDERS SERVICE ============
 const OrdersService = {
-    async createOrder(total_amount) {
+    async createOrder(order_name, total_amount) {
         return await ordersAPI.request('/', {
             method: 'POST',
-            body: JSON.stringify({ "total_amount": parseInt(total_amount) })
+            body: JSON.stringify({ "order_name": order_name, "total_amount": parseInt(total_amount) })
         });
     },
 

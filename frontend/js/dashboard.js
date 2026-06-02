@@ -95,15 +95,20 @@ function initEventListeners() {
     if (createForm) {
         createForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+	    const order_name = parseFloat(document.getElementById('orderName').value);
             const total_amount = parseFloat(document.getElementById('orderAmount').value);
             
+	    if (order_name ='') {
+		    showMessage('Название должно быть не пустым');
+		    return;
+	    }
             if (isNaN(total_amount) || total_amount < 1) {
                 showMessage('Сумма должна быть больше 0', 'error');
                 return;
             }
             
             try {
-                const result = await API.OrdersService.createOrder(total_amount);
+                const result = await API.OrdersService.createOrder(order_name, total_amount);
                 if (result.order_id) {
                     modal.style.display = 'none';
                     createForm.reset();
@@ -238,6 +243,7 @@ async function loadOrders(statusFilter = null) {
                     <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
                 </div>
                 <div class="order-details">
+		    <p><strong>💰 Название: </strong> ${order.order_name}</p>
                     <p><strong>💰 Сумма:</strong> ${formatPrice(order.total_amount)} ₽</p>
                     <p><strong>📅 Дата создания:</strong> ${formatDate(order.created_at)}</p>
                 </div>
