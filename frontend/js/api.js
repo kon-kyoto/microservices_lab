@@ -2,7 +2,7 @@
 const API_CONFIG = {
     auth: '/api/auth',
     users: '/api/users',
-    orders: '/api/orders/'
+    orders: '/api/orders'
 };
 
 // Глобальные настройки для fetch с cookies

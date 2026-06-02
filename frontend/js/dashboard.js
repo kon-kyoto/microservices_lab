@@ -95,10 +95,10 @@ function initEventListeners() {
     if (createForm) {
         createForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-	    const order_name = parseFloat(document.getElementById('orderName').value);
+	    const order_name = document.getElementById('orderName').value;
             const total_amount = parseFloat(document.getElementById('orderAmount').value);
             
-	    if (!order_name || order_name.trim() ='') {
+	    if (!order_name || order_name  == '') {
 		    showMessage('Название должно быть не пустым');
 		    return;
 	    }
