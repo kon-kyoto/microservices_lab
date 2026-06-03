@@ -10,15 +10,12 @@ def create_order(user, total_amount=None, order_name=None, expected_status=201):
 
     if total_amount is None:
         total_amount = random.randint(1, 10000)
-    
+
     if order_name is None:
         order_name = f"Test Order {random.randint(1, 9999)}"
 
     cookie = {"access_token": user.token}
-    data = {
-        "total_amount": total_amount,
-        "order_name": order_name  # ✅ Добавлено поле order_name
-    }
+    data = {"total_amount": total_amount, "order_name": order_name}
 
     response = requests.post(
         "http://localhost:80/api/orders/",
@@ -115,7 +112,7 @@ def test_create_order_invalid_amount():
         return False
 
     cookie = {"access_token": user.token}
-    
+
     # ✅ Тест с неверным форматом суммы
     response = requests.post(
         "http://localhost:80/api/orders/",
@@ -123,11 +120,11 @@ def test_create_order_invalid_amount():
         cookies=cookie,
         json={
             "total_amount": "not_a_number",
-            "order_name": "Test Order"  # ✅ Добавлено поле
+            "order_name": "Test Order",  # ✅ Добавлено поле
         },
         timeout=10,
     )
-    
+
     return response.status_code == 405
 
 
@@ -143,7 +140,7 @@ def test_create_order_without_name():
         return False
 
     cookie = {"access_token": user.token}
-    
+
     # ✅ Тест без order_name
     response = requests.post(
         "http://localhost:80/api/orders/",
@@ -152,8 +149,10 @@ def test_create_order_without_name():
         json={"total_amount": 1000},
         timeout=10,
     )
-    
-    return response.status_code == 400  # Должен вернуть 400, так как order_name обязателен
+
+    return (
+        response.status_code == 400
+    )  # Должен вернуть 400, так как order_name обязателен
 
 
 def test_create_order_with_empty_name():
@@ -168,7 +167,7 @@ def test_create_order_with_empty_name():
         return False
 
     cookie = {"access_token": user.token}
-    
+
     # ✅ Тест с пустым order_name
     response = requests.post(
         "http://localhost:80/api/orders/",
@@ -177,7 +176,7 @@ def test_create_order_with_empty_name():
         json={"total_amount": 1000, "order_name": ""},
         timeout=10,
     )
-    
+
     return response.status_code == 400
 
 
@@ -228,19 +227,19 @@ def test_order_has_name_field():
     # Create order with specific name
     test_name = f"Test Order {random.randint(1, 9999)}"
     order_id = create_order(user, total_amount=1000, order_name=test_name)
-    
+
     if not order_id:
         return False
 
     # Get order and check name field
     order = get_order(user, order_id)
-    
+
     if not order or not isinstance(order, dict):
         return False
-    
+
     # ✅ Проверяем наличие поля order_name
     if "order_name" not in order:
         return False
-    
+
     # ✅ Проверяем, что имя соответствует созданному
     return order.get("order_name") == test_name

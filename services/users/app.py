@@ -31,20 +31,23 @@ JWT_CONFIG = {
     "secret_key": os.getenv("SECRET_KEY"),
     "expires_hours": int(os.getenv("TIMEDELTA", "24")),
 }
- 
+
+
 def get_client_ip(request):
-    forwarded = request.headers.get('X-Forwarded-For')
+    forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(',')[0].strip()
+        return forwarded.split(",")[0].strip()
     return request.remote_addr
+
 
 def check_token(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         token = request.cookies.get("access_token")
+        cli_ip = get_client_ip(request)
         if not token:
             app.logger.warning(
-                f"WARNING [401] ip: {get_client_ip(request)} - Missing token for {request.method} {request.path}"
+                f"WARNING [401] ip: {cli_ip} - Missing token for {request.method} {request.path}"
             )
             return jsonify({"error": "Authentication required"}), 401
 
@@ -57,7 +60,7 @@ def check_token(func):
 
             if response.status_code != 200:
                 app.logger.warning(
-                    f"WARNING [401] ip: {get_client_ip(request)} - Invalid token for {request.method} {request.path}"
+                    f"WARNING [401] ip: {cli_ip} - Invalid token for {request.method} {request.path}"
                 )
                 return jsonify({"error": "Invalid or expired token"}), 401
 
@@ -65,29 +68,29 @@ def check_token(func):
             g.user_id = user_data.get("user_id")
 
             app.logger.info(
-                f"INFO [200] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - Token verified for {request.method} {request.path}"
+                f"INFO [200] ip: {cli_ip} user_id: {g.user_id} - Token verified for {request.method} {request.path}"
             )
 
             return func(*args, **kwargs)
 
         except requests.exceptions.ConnectionError:
             app.logger.error(
-                f"ERROR [503] ip: {get_client_ip(request)} - Cannot connect to auth_service for {request.path}"
+                f"ERROR [503] ip: {cli_ip} - Cannot connect to auth_service for {request.path}"
             )
             return jsonify({"error": "Authentication service unavailable"}), 503
         except requests.exceptions.Timeout:
             app.logger.error(
-                f"ERROR [504] ip: {get_client_ip(request)} - Auth service timeout for {request.path}"
+                f"ERROR [504] ip: {cli_ip} - Auth service timeout for {request.path}"
             )
             return jsonify({"error": "Authentication service timeout"}), 504
         except requests.exceptions.RequestException as e:
             app.logger.error(
-                f"ERROR [401] ip: {get_client_ip(request)} - Auth service request error: {str(e)}"
+                f"ERROR [401] ip: {cli_ip} - Auth service request error: {str(e)}"
             )
             return jsonify({"error": "Authentication failed"}), 401
         except Exception as e:
             app.logger.error(
-                f"ERROR [500] ip: {get_client_ip(request)} - Unexpected error in check_token: {str(e)}"
+                f"ERROR [500] ip: {cli_ip} - Unexpected error in check_token: {str(e)}"
             )
             return jsonify({"error": "Internal server error"}), 500
 
@@ -121,10 +124,11 @@ def get_db_cursor():
 @check_token
 def get_user(find_id):
     user_id = g.get("user_id")
+    cli_ip = get_client_ip(request)
 
     if str(user_id) != str(find_id):
         app.logger.warning(
-            f"WARNING [403] ip: {get_client_ip(request)} user_id: {user_id} - Access denied to view user {find_id}"
+            f"WARNING [403] ip: {cli_ip} user_id: {user_id} - Access denied to view user {find_id}"
         )
         return (
             jsonify({"error": "Access denied. You can only access your own profile."}),
@@ -140,12 +144,12 @@ def get_user(find_id):
             data_row = cur.fetchone()
             if not data_row:
                 app.logger.warning(
-                    f"WARNING [404] ip: {get_client_ip(request)} user_id: {user_id} - User {find_id} not found"
+                    f"WARNING [404] ip: {cli_ip} user_id: {user_id} - User {find_id} not found"
                 )
                 return jsonify({"error": "User not found"}), 404
 
         app.logger.info(
-            f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Retrieved user profile for {find_id}"
+            f"INFO [200] ip: {cli_ip} user_id: {user_id} - Retrieved user profile for {find_id}"
         )
         return (
             jsonify(
@@ -159,12 +163,12 @@ def get_user(find_id):
         )
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Database error getting user {find_id}: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Database error getting user {find_id}: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Unexpected error getting user {find_id}: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Unexpected error getting user {find_id}: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -173,9 +177,10 @@ def get_user(find_id):
 @check_token
 def user_change(find_id):
     data = request.get_json()
+    cli_ip = get_client_ip(request)
     if not data:
         app.logger.warning(
-            f"WARNING [400] ip: {get_client_ip(request)} user_id: {g.get('user_id')} - No JSON body for update"
+            f"WARNING [400] ip: {cli_ip} user_id: {g.user_id} - No JSON body for update"
         )
         return jsonify({"error": "Request body is required"}), 400
 
@@ -185,7 +190,7 @@ def user_change(find_id):
 
     if str(user_id) != str(find_id):
         app.logger.warning(
-            f"WARNING [403] ip: {get_client_ip(request)} user_id: {user_id} - Access denied to modify user {find_id}"
+            f"WARNING [403] ip: {cli_ip} user_id: {user_id} - Access denied to modify user {find_id}"
         )
         return (
             jsonify({"error": "Access denied. You can only modify your own profile."}),
@@ -194,7 +199,7 @@ def user_change(find_id):
 
     if not username and not email:
         app.logger.warning(
-            f"WARNING [400] ip: {get_client_ip(request)} user_id: {user_id} - No fields to update"
+            f"WARNING [400] ip: {cli_ip} user_id: {user_id} - No fields to update"
         )
         return (
             jsonify(
@@ -215,7 +220,7 @@ def user_change(find_id):
                 )
                 if cur.fetchone():
                     app.logger.warning(
-                        f"WARNING [409] ip: {get_client_ip(request)} user_id: {user_id} - Email {email} already in use"
+                        f"WARNING [409] ip: {cli_ip} user_id: {user_id} - Email {email} already in use"
                     )
                     return jsonify({"error": "Email already in use"}), 409
 
@@ -223,7 +228,7 @@ def user_change(find_id):
                     "UPDATE users SET email = %s WHERE id = %s", (email, user_id)
                 )
                 app.logger.info(
-                    f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Email updated to {email}"
+                    f"INFO [200] ip: {cli_ip} user_id: {user_id} - Email updated to {email}"
                 )
 
             if username:
@@ -234,7 +239,7 @@ def user_change(find_id):
                 )
                 if cur.fetchone():
                     app.logger.warning(
-                        f"WARNING [409] ip: {get_client_ip(request)} user_id: {user_id} - Username {username} already taken"
+                        f"WARNING [409] ip: {cli_ip} user_id: {user_id} - Username {username} already taken"
                     )
                     return jsonify({"error": "Username already taken"}), 409
 
@@ -242,21 +247,21 @@ def user_change(find_id):
                     "UPDATE users SET username = %s WHERE id = %s", (username, user_id)
                 )
                 app.logger.info(
-                    f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Username updated to {username}"
+                    f"INFO [200] ip: {cli_ip} user_id: {user_id} - Username updated to {username}"
                 )
 
         app.logger.info(
-            f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Profile updated successfully"
+            f"INFO [200] ip: {cli_ip} user_id: {user_id} - Profile updated successfully"
         )
         return jsonify({"message": "Profile updated successfully"}), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Database error updating user: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Database error updating user: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Unexpected error updating user: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Unexpected error updating user: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -265,10 +270,11 @@ def user_change(find_id):
 @check_token
 def user_delete(find_id):
     user_id = g.get("user_id")
+    cli_ip = get_client_ip(request)
 
     if str(user_id) != str(find_id):
         app.logger.warning(
-            f"WARNING [403] ip: {get_client_ip(request)} user_id: {user_id} - Access denied to delete user {find_id}"
+            f"WARNING [403] ip: {cli_ip} user_id: {user_id} - Access denied to delete user {find_id}"
         )
         return (
             jsonify({"error": "Access denied. You can only delete your own account."}),
@@ -281,7 +287,7 @@ def user_delete(find_id):
             cur.execute("SELECT id FROM users WHERE id = %s", (find_id,))
             if not cur.fetchone():
                 app.logger.warning(
-                    f"WARNING [404] ip: {get_client_ip(request)} user_id: {user_id} - User {find_id} not found for deletion"
+                    f"WARNING [404] ip: {cli_ip} user_id: {user_id} - User {find_id} not found for deletion"
                 )
                 return jsonify({"error": "User not found"}), 404
 
@@ -291,17 +297,17 @@ def user_delete(find_id):
             cur.execute("DELETE FROM users WHERE id = %s", (find_id,))
 
         app.logger.info(
-            f"INFO [204] ip: {get_client_ip(request)} user_id: {user_id} - Account deleted successfully"
+            f"INFO [204] ip: {cli_ip} user_id: {user_id} - Account deleted successfully"
         )
         return "", 204
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Database error deleting user: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Database error deleting user: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Unexpected error deleting user: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Unexpected error deleting user: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -310,6 +316,7 @@ def user_delete(find_id):
 @check_token
 def users_list():
     user_id = g.get("user_id")
+    cli_ip = get_client_ip(request)
 
     try:
         with get_db_cursor() as cur:
@@ -317,17 +324,17 @@ def users_list():
             data = cur.fetchall()
 
         app.logger.info(
-            f"INFO [200] ip: {get_client_ip(request)} user_id: {user_id} - Retrieved {len(data)} users list"
+            f"INFO [200] ip: {cli_ip} user_id: {user_id} - Retrieved {len(data)} users list"
         )
         return jsonify(data), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Database error getting users list: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Database error getting users list: {str(e)}"
         )
         return jsonify({"error": "Database error"}), 500
     except Exception as e:
         app.logger.error(
-            f"ERROR [500] ip: {get_client_ip(request)} user_id: {user_id} - Unexpected error getting users list: {str(e)}"
+            f"ERROR [500] ip: {cli_ip} user_id: {user_id} - Unexpected error getting users list: {str(e)}"
         )
         return jsonify({"error": "Internal server error"}), 500
 
@@ -335,22 +342,21 @@ def users_list():
 @app.route("/health", methods=["GET"])
 def health():
     try:
+        cli_ip = get_client_ip(request)
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
-        app.logger.info(f"INFO [200] ip: {get_client_ip(request)} - Health check passed")
+        app.logger.info(f"INFO [200] ip: {cli_ip} - Health check passed")
         return jsonify({"status": "healthy"}), 200
     except psycopg2.Error as e:
         app.logger.error(
-            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed - Database error: {str(e)}"
+            f"ERROR [503] ip: {cli_ip} - Health check failed - Database error: {str(e)}"
         )
         return (
             jsonify({"status": "unhealthy", "message": "Database connection failed"}),
             503,
         )
     except Exception as e:
-        app.logger.error(
-            f"ERROR [503] ip: {get_client_ip(request)} - Health check failed: {str(e)}"
-        )
+        app.logger.error(f"ERROR [503] ip: {cli_ip} - Health check failed: {str(e)}")
         return jsonify({"status": "unhealthy", "message": str(e)}), 503
 
 
