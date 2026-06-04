@@ -2,7 +2,7 @@ PY = python3
 SOURCE = tests/tests.py
 VENV = test_venv
 
-.PHONY: test clear
+.PHONY: test clear build-kube
 
 start: test format clear
 
@@ -22,5 +22,13 @@ test:
 	fi
 	@./$(VENV)/bin/pytest $(SOURCE) -v --tb=short --disable-warnings
 
+build-kube:
+	minikube start -p micro --cpus 2 --memory 3072
+	docker build -f ./gateway/Dockerfile . -t ordernginx:1.0
+	minicube image load ordernginx:1.0 -p micro
+
 clear:
-	@rm -rf $(VENV)
+	rm -rf $(VENV)
+	minikube delete -p micro
+	docker image rm ordernginx:1.0
+
