@@ -1,7 +1,7 @@
 ---
-# ===========
+# ================
 # GATEWAY SERVICE
-# ===========
+# ================
 
 apiVersion: v1
 kind: Service
@@ -21,4 +21,27 @@ spec:
   - port: 80
     targetPort: 80
     nodePort: 30080
+    name: http
+
+---
+# ================
+# AUTH SERVICE
+# ================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: auth
+
+spec:
+  selector:
+    app: orderApp
+    component: auth
+  ports:
+  - port: 5001
+    targetPort: 5001
     name: http
