@@ -7,7 +7,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-gateway
-  namespace: app
+  namespace: app-ns
   labels:
     app: orderApp
     component: gateway
