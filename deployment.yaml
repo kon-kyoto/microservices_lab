@@ -75,6 +75,3 @@ spec:
       - name: frontend-files
         configMap:
           name: frontend-html
-
-
-

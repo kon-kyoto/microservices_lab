@@ -1,0 +1,24 @@
+---
+# ===========
+# GATEWAY SERVICE
+# ===========
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-gateway
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: gateway
+
+spec:
+  type: NodePort
+  selector: 
+    app: orderApp
+    component: gateway
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+    name: http
