@@ -5,6 +5,7 @@ VENV = test_venv
 .PHONY: test clear build-kube
 
 start: test format clear
+rebuild: clear build-kube
 
 format:
 	@if [ ! -d $(VENV) ]; then \
