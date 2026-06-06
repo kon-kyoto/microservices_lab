@@ -403,3 +403,74 @@ spec:
             port: 5002
           initialDelaySeconds: 15
           periodSeconds: 20
+
+          
+---
+# =========================
+# ORDERS SERVICE 
+# =========================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service 
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: orders
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: orderApp 
+      component: orders
+  template:
+    metadata:
+      labels:
+        app: orderApp
+        component: orders
+    spec:
+      containers:
+      - name: orders
+        image: orderorders:1.0
+        ports:
+        - containerPort: 5003
+          name: http
+          protocol: TCP
+        env:
+        - name: FLASK_MOD
+          value: "dev"
+        - name: POSTGRES_HOST
+          value: "postgres"
+        - name: DB_NAME
+          value: "microservices_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: SECRET_KEY
+          value: "develop"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          initialDelaySeconds: 5
+          periodSeconds: 10 
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          initialDelaySeconds: 15
+          periodSeconds: 20

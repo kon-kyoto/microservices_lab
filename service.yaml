@@ -101,7 +101,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: auth
+  name: orders
   namespace: app-ns
   labels:
     app: orderApp
@@ -112,6 +112,30 @@ spec:
   selector:
     app: orderApp
     component: users
+  ports:
+  - port: 5002
+    targetPort: 5002
+    name: http
+
+---
+# ================
+# ORDERS SERVICE
+# ================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: orders
+
+spec:
+  type: ClusterIP
+  selector:
+    app: orderApp
+    component: orders
   ports:
   - port: 5003
     targetPort: 5003
