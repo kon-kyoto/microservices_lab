@@ -143,3 +143,95 @@ spec:
             port: 5001
           initialDelaySeconds: 15
           periodSeconds: 20
+
+---
+# =========================
+# POSTGRESQL DATABASE
+# =========================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql-db
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: ps-db
+    type: data
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: orderApp 
+      component: ps-db
+  template:
+    metadata:
+      labels:
+        app: orderApp
+        component: ps-db
+        type: data
+    spec:
+      containers:
+      - name: postgresql-db
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+          protocol: TCP
+        volumeMounts:
+        - name: init-db
+          mountPath: /docker-entrypoint-initdb.d         
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          exec:
+            command:
+            - "pg_isready"
+            - "-U"
+            - "postgres"
+            - "-h" 
+            - "localhost"
+            - "-p"
+            - "5432"
+          initialDelaySeconds: 5
+          periodSeconds: 10 
+        livenessProbe:
+          exec:
+            command:
+            - "pg_isready"
+            - "-U"
+            - "postgres"
+            - "-h" 
+            - "localhost"
+            - "-p"
+            - "5432"
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        env:
+        - name: POSTGRES_DB
+          value: "microservices_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+      volumes:
+      - name: init-db 
+        configMap:
+          name: init-db
+      - name: postgresql-data
+        persistentVolumeClaim:
+          claimName: main-data
