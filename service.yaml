@@ -25,6 +25,29 @@ spec:
 
 ---
 # ================
+# POSTGRESQL
+# ================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: ps-db
+spec:
+  type: ClusterIP
+  selector:
+    app: orderApp
+    component: ps-db
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+
+---
+# ================
 # AUTH SERVICE
 # ================
 
@@ -38,6 +61,7 @@ metadata:
     component: auth
 
 spec:
+  type: ClusterIP
   selector:
     app: orderApp
     component: auth
