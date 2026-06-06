@@ -236,7 +236,7 @@ spec:
         livenessProbe:
           exec:
             command:
-            - "redis_cli"
+            - "redis-cli"
             - "-a"
             - "$REDIS_PASSWORD"
             - "ping" 
@@ -334,3 +334,72 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
 
+---
+# =========================
+# USERS SERVICE 
+# =========================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service 
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: users
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: orderApp 
+      component: users
+  template:
+    metadata:
+      labels:
+        app: orderApp
+        component: users
+    spec:
+      containers:
+      - name: users
+        image: orderusers:1.0
+        ports:
+        - containerPort: 5002
+          name: http
+          protocol: TCP
+        env:
+        - name: FLASK_MOD
+          value: "dev"
+        - name: POSTGRES_HOST
+          value: "postgres"
+        - name: DB_NAME
+          value: "microservices_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: SECRET_KEY
+          value: "develop"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 5
+          periodSeconds: 10 
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 15
+          periodSeconds: 20
