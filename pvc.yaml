@@ -1,0 +1,20 @@
+---
+# =================
+# POSTGRESQL PVC
+# =================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: main-data
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: ps-db
+    type: persistent-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
