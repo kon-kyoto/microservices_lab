@@ -53,7 +53,7 @@ def check_token(func):
 
         try:
             response = requests.post(
-                "http://auth_service:5001/verify",
+                "http://auth:5001/verify",
                 cookies={"access_token": token},
                 timeout=5,
             )
