@@ -48,6 +48,29 @@ spec:
 
 ---
 # ================
+# REDIS
+# ================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: app-ns
+  labels:
+    app: orderApp
+    component: redis
+spec:
+  type: ClusterIP
+  selector:
+    app: orderApp
+    component: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+
+---
+# ================
 # AUTH SERVICE
 # ================
 
