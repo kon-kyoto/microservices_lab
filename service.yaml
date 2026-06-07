@@ -101,7 +101,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: orders
+  name: users
   namespace: app-ns
   labels:
     app: orderApp

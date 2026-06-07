@@ -12,7 +12,7 @@ metadata:
     app: orderApp
     component: gateway
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -39,8 +39,6 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf          
           subPath: nginx.conf
-        - name: frontend-files
-          mountPath: /usr/share/nginx/html
         resources:
           requests:
             memory: "64Mi"
@@ -64,9 +62,6 @@ spec:
       - name: nginx-config
         configMap:
           name: nginx-gateway-config
-      - name: frontend-files
-        configMap:
-          name: frontend-html
 
 ---
 # =========================
@@ -270,7 +265,7 @@ metadata:
     app: orderApp
     component: auth
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -348,7 +343,7 @@ metadata:
     app: orderApp
     component: users
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -419,7 +414,7 @@ metadata:
     app: orderApp
     component: orders
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
