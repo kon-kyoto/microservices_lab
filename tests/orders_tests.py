@@ -18,7 +18,7 @@ def create_order(user, total_amount=None, order_name=None, expected_status=201):
     data = {"total_amount": total_amount, "order_name": order_name}
 
     response = requests.post(
-        "http://localhost:80/api/orders/",
+        "http://localhost:8080/api/orders/",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json=data,
@@ -39,7 +39,7 @@ def get_order(user, order_id, expected_status=200):
 
     cookie = {"access_token": user.token}
     response = requests.get(
-        f"http://localhost:80/api/orders/{order_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/orders/{order_id}", cookies=cookie, timeout=10
     )
 
     if response.status_code == 200:
@@ -55,7 +55,7 @@ def get_user_orders(user, user_id, expected_status=200):
 
     cookie = {"access_token": user.token}
     response = requests.get(
-        f"http://localhost:80/api/orders/user/{user_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/orders/user/{user_id}", cookies=cookie, timeout=10
     )
 
     if response.status_code == 200:
@@ -77,7 +77,7 @@ def update_order_status(user, order_id, status, expected_status=200):
     data = {"status": status}
 
     response = requests.put(
-        f"http://localhost:80/api/orders/{order_id}",
+        f"http://localhost:8080/api/orders/{order_id}",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json=data,
@@ -94,7 +94,7 @@ def delete_order(user, order_id, expected_status=204):
 
     cookie = {"access_token": user.token}
     response = requests.delete(
-        f"http://localhost:80/api/orders/{order_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/orders/{order_id}", cookies=cookie, timeout=10
     )
 
     return response.status_code == expected_status
@@ -115,7 +115,7 @@ def test_create_order_invalid_amount():
 
     # ✅ Тест с неверным форматом суммы
     response = requests.post(
-        "http://localhost:80/api/orders/",
+        "http://localhost:8080/api/orders/",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={
@@ -143,7 +143,7 @@ def test_create_order_without_name():
 
     # ✅ Тест без order_name
     response = requests.post(
-        "http://localhost:80/api/orders/",
+        "http://localhost:8080/api/orders/",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={"total_amount": 1000},
@@ -170,7 +170,7 @@ def test_create_order_with_empty_name():
 
     # ✅ Тест с пустым order_name
     response = requests.post(
-        "http://localhost:80/api/orders/",
+        "http://localhost:8080/api/orders/",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={"total_amount": 1000, "order_name": ""},
@@ -207,7 +207,7 @@ def test_access_another_users_order():
     # Try to access with user1's token
     cookie = {"access_token": user1.token}
     response = requests.get(
-        f"http://localhost:80/api/orders/{order_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/orders/{order_id}", cookies=cookie, timeout=10
     )
 
     return response.status_code == 403

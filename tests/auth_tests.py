@@ -59,7 +59,7 @@ def register_user(user, expected_status=201):
     """Register a user"""
     data = {"username": user.username, "email": user.email, "password": user.password}
     response = requests.post(
-        "http://localhost:80/api/auth/register",
+        "http://localhost:8080/api/auth/register",
         headers={"Content-Type": "application/json"},
         json=data,
         timeout=10,
@@ -77,7 +77,7 @@ def login_user(user, expected_status=200):
     """Login a user"""
     data = {"username": user.username, "password": user.password}
     response = requests.post(
-        "http://localhost:80/api/auth/login",
+        "http://localhost:8080/api/auth/login",
         headers={"Content-Type": "application/json"},
         json=data,
         timeout=10,
@@ -98,7 +98,7 @@ def verify_user(user, expected_status=200):
 
     cookies = {"access_token": user.token}
     response = requests.post(
-        "http://localhost:80/api/auth/verify", cookies=cookies, timeout=10
+        "http://localhost:8080/api/auth/verify", cookies=cookies, timeout=10
     )
 
     if response.status_code == 200:
@@ -113,7 +113,7 @@ def logout_user(user, expected_status=200):
     """Logout user (blacklist token)"""
     cookies = {"access_token": user.token}
     response = requests.post(
-        "http://localhost:80/api/auth/logout", cookies=cookies, timeout=10
+        "http://localhost:8080/api/auth/logout", cookies=cookies, timeout=10
     )
 
     return response.status_code == expected_status
@@ -148,7 +148,7 @@ def test_rate_limiting():
     for i in range(15):  # Увеличим до 15 попыток
         data = {"username": user.username, "password": user.password}
         response = requests.post(
-            "http://localhost:80/api/auth/login",
+            "http://localhost:8080/api/auth/login",
             headers={"Content-Type": "application/json"},
             json=data,
             timeout=10,

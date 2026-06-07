@@ -158,7 +158,7 @@ class TestLogout:
 
         cookies = {"access_token": user.token}
         response = requests.post(
-            "http://localhost:80/api/auth/verify", cookies=cookies, timeout=10
+            "http://localhost:8080/api/auth/verify", cookies=cookies, timeout=10
         )
         assert response.status_code == 401
 
@@ -177,7 +177,7 @@ class TestOrderNameValidation:
         long_name = "A" * 500
         cookie = {"access_token": user.token}
         response = requests.post(
-            "http://localhost:80/api/orders/",
+            "http://localhost:8080/api/orders/",
             headers={"Content-Type": "application/json"},
             cookies=cookie,
             json={"total_amount": 1000, "order_name": long_name},

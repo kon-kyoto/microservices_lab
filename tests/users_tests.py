@@ -13,7 +13,7 @@ def user_info(user, expected_status=200):
 
     cookie = {"access_token": user.token}
     response = requests.get(
-        f"http://localhost:80/api/users/{user.user_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/users/{user.user_id}", cookies=cookie, timeout=10
     )
 
     if response.status_code == 200:
@@ -32,7 +32,7 @@ def user_change_username(user, expected_status=200):
     cookie = {"access_token": user.token}
 
     response = requests.put(
-        f"http://localhost:80/api/users/{user.user_id}",
+        f"http://localhost:8080/api/users/{user.user_id}",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={"username": new_username},
@@ -55,7 +55,7 @@ def user_change_email(user, expected_status=200):
     cookie = {"access_token": user.token}
 
     response = requests.put(
-        f"http://localhost:80/api/users/{user.user_id}",
+        f"http://localhost:8080/api/users/{user.user_id}",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={"email": new_email},
@@ -76,7 +76,7 @@ def users_list(user, expected_status=200):
 
     cookie = {"access_token": user.token}
     response = requests.get(
-        "http://localhost:80/api/users/", cookies=cookie, timeout=10
+        "http://localhost:8080/api/users/", cookies=cookie, timeout=10
     )
 
     if response.status_code == 200:
@@ -93,7 +93,7 @@ def user_delete(user, expected_status=204):
 
     cookie = {"access_token": user.token}
     response = requests.delete(
-        f"http://localhost:80/api/users/{user.user_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/users/{user.user_id}", cookies=cookie, timeout=10
     )
 
     return response.status_code == expected_status
@@ -122,7 +122,7 @@ def test_access_another_user():
     # Try to access user2's data with user1's token
     cookie = {"access_token": user1.token}
     response = requests.get(
-        f"http://localhost:80/api/users/{user2.user_id}", cookies=cookie, timeout=10
+        f"http://localhost:8080/api/users/{user2.user_id}", cookies=cookie, timeout=10
     )
 
     return response.status_code == 403
@@ -141,7 +141,7 @@ def test_update_without_fields():
 
     cookie = {"access_token": user.token}
     response = requests.put(
-        f"http://localhost:80/api/users/{user.user_id}",
+        f"http://localhost:8080/api/users/{user.user_id}",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={},
@@ -173,7 +173,7 @@ def test_duplicate_username():
     # Try to change user2's username to user1's username
     cookie = {"access_token": user2.token}
     response = requests.put(
-        f"http://localhost:80/api/users/{user2.user_id}",
+        f"http://localhost:8080/api/users/{user2.user_id}",
         headers={"Content-Type": "application/json"},
         cookies=cookie,
         json={"username": user1.username},
