@@ -35,10 +35,6 @@ spec:
         - containerPort: 80
           name: http
           protocol: TCP
-        volumeMounts:
-        - name: nginx-config
-          mountPath: /etc/nginx/nginx.conf          
-          subPath: nginx.conf
         resources:
           requests:
             memory: "64Mi"
@@ -58,10 +54,6 @@ spec:
             port: 80
           initialDelaySeconds: 15
           periodSeconds: 20
-      volumes:
-      - name: nginx-config
-        configMap:
-          name: nginx-gateway-config
 
 ---
 # =========================
