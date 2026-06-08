@@ -206,7 +206,7 @@ function initEventListeners() {
     
     document.getElementById('testCreateOrder')?.addEventListener('click', async () => {
         try {
-            const result = await API.OrdersService.createOrder(5000);
+            const result = await API.OrdersService.createOrder("test", 5000);
             document.getElementById('resultCreateOrder').textContent = JSON.stringify(result, null, 2);
             await loadOrders();
         } catch (error) {

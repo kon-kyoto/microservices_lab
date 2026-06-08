@@ -125,7 +125,7 @@ def test_create_order_invalid_amount():
         timeout=10,
     )
 
-    return response.status_code == 405
+    return response.status_code == 400
 
 
 def test_create_order_without_name():

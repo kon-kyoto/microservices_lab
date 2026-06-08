@@ -138,9 +138,8 @@ def create_order():
 
     if not order_name or order_name.strip() == "":
         app.logger.warning(
-            f"WARNING [400] ip {cli_ip} user_id: {g.user_id} - Invalid order_name can be not empty"
         )
-        return jsonify({"message": "order name is empty"}), 400
+        return jsonify({"error": "order name is empty"}), 400
     try:
         total_amount = int(total_amount)
         if total_amount < 1:
@@ -150,9 +149,9 @@ def create_order():
             return jsonify({"error": "total_amount must be at least 1"}), 400
     except (TypeError, ValueError):
         app.logger.warning(
-            f"WARNING [405] ip: {cli_ip} user_id: {g.user_id} - total_amount type error: {total_amount}"
+            f"WARNING [400] ip: {cli_ip} user_id: {g.user_id} - total_amount type error: {total_amount}"
         )
-        return jsonify({"error": "total_amount must be a valid integer"}), 405
+        return jsonify({"error": "total_amount must be a valid integer"}), 400
 
     try:
         with get_db_cursor() as cur:
