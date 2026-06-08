@@ -3,27 +3,29 @@
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![k3s](https://img.shields.io/badge/k3s-1.28+-FFC61A?logo=rancher&logoColor=black)](https://k3s.io/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org/)
+[![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker&logoColor=white)](https://docker.com/)
+[![Flask](https://img.shields.io/badge/Flask-2.3+-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> **Эволюция проекта:** от `docker-compose` к production-готовому кластеру на **k3s** с 2 master и 2 worker нодами.  
-> Основной фокус: безопасность, отказоустойчивость, оптимизация ресурсов и наблюдаемость.
+> **Project Evolution:** from `docker-compose` to a production-ready cluster on **k3s** with 2 master and 2 worker nodes.  
+> Main focus: security, high availability, resource optimization, and observability.
 
 ---
 
-## 📋 Содержание
+## 📋 Table of Contents
 
-1. [Архитектура кластера](#-архитектура-кластера)
-2. [Технологический стек](#-технологический-стек)
-3. [Структура проекта](#-структура-проекта)
-4. [Безопасность](#-безопасность)
-5. [Оптимизации](#-оптимизации)
-6. [Запуск в кластере](#-запуск-в-кластере)
-7. [Статусы ответов API](#-статусы-ответов-api)
-8. [Планы развития](#-планы-развития)
+1. [Cluster Architecture](#-cluster-architecture)
+2. [Technology Stack](#-technology-stack)
+3. [Project Structure](#-project-structure)
+4. [Security](#-security)
+5. [Optimizations](#-optimizations)
+6. [Deploy to Cluster](#-deploy-to-cluster)
+7. [API Response Statuses](#-api-response-statuses)
+8. [Roadmap](#-roadmap)
 
 ---
 
-## 🏗 Архитектура кластера
+## 🏗 Cluster Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -44,45 +46,45 @@
          (Longhorn / Local)
 ```
 
-- **2 Master ноды:** обеспечение высокой доступности control plane (k3s с embedded etcd).
-- **2 Worker ноды:** запуск микросервисов, PostgreSQL, Redis с репликацией.
-- **Балансировка нагрузки:** через Ingress Controller + MetalLB (для on-prem).
-- **Сетевая политика:** ограничение трафика между сервисами (Calico / Cilium).
+- **2 Master nodes:** high availability for control plane (k3s with embedded etcd).
+- **2 Worker nodes:** running microservices, PostgreSQL, Redis with replication.
+- **Load balancing:** via Ingress Controller + MetalLB (for on-prem).
+- **Network policies:** traffic restriction between services (Calico / Cilium).
 
 ---
 
-## 🧩 Технологический стек
+## 🧩 Technology Stack
 
-| Компонент          | Технологии                                                                 |
-|--------------------|----------------------------------------------------------------------------|
-| **Container**      | Docker, k3s (containerd)                                                  |
-| **Orchestration**  | Kubernetes 1.28+, Helm, Kustomize                                         |
-| **Service Mesh**   | (план) Istio / Linkerd для mTLS и observability                           |
-| **API Gateway**    | OpenResty (Nginx + Lua) → маршрутизация, rate limiting, JWT               |
-| **Microservices**  | Python 3.11 + Flask, JWT, psycopg2-binary                                 |
-| **Databases**      | PostgreSQL 15 (StatefulSet + replicas), Redis 7 (sentinel)                |
-| **Storage**        | Longhorn (распределенные блоки), S3-совместимое (minIO для логов)         |
-| **Observability**  | Prometheus + Grafana + Loki (сбор логов), Tempo (traces)                  |
-| **Security**       | k3s Hardening, OPA/Gatekeeper, Falco, Trivy (scan образов), Sealed Secrets|
-| **Backup**         | Velero + restic (в S3)                                                    |
-| **CI/CD**          | GitHub Actions + ArgoCD (GitOps)                                          |
+| Component          | Technologies                                                                 |
+|--------------------|-----------------------------------------------------------------------------|
+| **Container**      | Docker, k3s (containerd)                                                   |
+| **Orchestration**  | Kubernetes 1.28+, Helm, Kustomize                                          |
+| **Service Mesh**   | (planned) Istio / Linkerd for mTLS and observability                       |
+| **API Gateway**    | OpenResty (Nginx + Lua) → routing, rate limiting, JWT                      |
+| **Microservices**  | Python 3.11 + Flask, JWT, psycopg2-binary                                  |
+| **Databases**      | PostgreSQL 15 (StatefulSet + replicas), Redis 7 (sentinel)                 |
+| **Storage**        | Longhorn (distributed block), S3-compatible (minIO for logs)               |
+| **Observability**  | Prometheus + Grafana + Loki (log aggregation), Tempo (traces)              |
+| **Security**       | k3s Hardening, OPA/Gatekeeper, Falco, Trivy (image scanning), Sealed Secrets|
+| **Backup**         | Velero + restic (to S3)                                                    |
+| **CI/CD**          | GitHub Actions + ArgoCD (GitOps)                                           |
 
 ---
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
 microservices_lab/
-├── kubernetes/                     # Манифесты для k8s
-│   ├── base/                       # Базовые конфигурации
+├── kubernetes/                     # k8s manifests
+│   ├── base/                       # Base configurations
 │   │   ├── deployment.yaml
 │   │   ├── service.yaml
 │   │   ├── ingress.yaml
 │   │   └── kustomization.yaml
-│   ├── overlays/                   # Окружения
+│   ├── overlays/                   # Environments
 │   │   ├── dev/
 │   │   ├── staging/
-│   │   └── production/             # HA, реплики, ресурсы
+│   │   └── production/             # HA, replicas, resources
 │   ├── helm/                       # Helm charts
 │   │   ├── auth-service/
 │   │   ├── users-service/
@@ -90,53 +92,53 @@ microservices_lab/
 │   ├── pv/                         # PersistentVolume + PVC
 │   │   ├── postgres-pv.yaml
 │   │   └── redis-pv.yaml
-│   └── network-policies/           # Сетевая сегментация
-├── services/                       # Микросервисы (Python)
+│   └── network-policies/           # Network segmentation
+├── services/                       # Microservices (Python)
 ├── gateway/                        # API Gateway (OpenResty)
 ├── infrastructure/                 # PostgreSQL, Redis (StatefulSets)
 ├── monitoring/                     # Prometheus, Grafana, Loki
 ├── security/                       # OPA policies, Falco rules
-├── scripts/                        # Утилиты для деплоя и бэкапов
-├── Makefile                        # Команды для cluster management
+├── scripts/                        # Deployment and backup utilities
+├── Makefile                        # Cluster management commands
 └── README.md
 ```
 
 ---
 
-## 🔒 Безопасность
+## 🔒 Security
 
-| Мера | Реализация |
-|------|-------------|
-| **mTLS** | Istio / Linkerd (шифрование сервис→сервис) |
-| **JWT validation** | На уровне API Gateway (проверка перед маршрутизацией) |
-| **Secrets** | Sealed Secrets + внешний провайдер (Bitwarden / Vault) |
-| **Network Policies** | deny-by-default, только явные разрешения (e.g., gateway → auth) |
-| **Pod Security** | `restricted` стандарт, запрет root, readOnlyRootFilesystem |
-| **Image Scanning** | Trivy в CI, запрет уязвимых образов через OPA |
-| **Runtime Security** | Falco (отслеживание аномалий в подах) |
-| **Backup Encryption** | Velero + restic с шифрованием (AES-256) |
-
----
-
-## ⚡ Оптимизации
-
-- **Resource Limits & Requests** – точные значения CPU/RAM для каждого микросервиса.
-- **HPA (Horizontal Pod Autoscaler)** – на основе CPU и пользовательских метрик (RPS).
-- **Cluster Autoscaler** – авто-добавление worker нод при необходимости.
-- **Cache** – Redis как L2 cache для профилей пользователей.
-- **Readiness & Liveness Probes** – быстрый restart зависших подов.
-- **Бинарные образы:** `python:3.11-slim-bookworm` + multi-stage сборка.
-- **Anti-affinity** – распределение подов одного сервиса по разным нодам.
-- **Spot instances** (для worker нод) – экономия 60-70%.
+| Measure | Implementation |
+|---------|----------------|
+| **mTLS** | Istio / Linkerd (service→service encryption) |
+| **JWT validation** | At API Gateway level (validation before routing) |
+| **Secrets** | Sealed Secrets + external provider (Bitwarden / Vault) |
+| **Network Policies** | deny-by-default, explicit allows only (e.g., gateway → auth) |
+| **Pod Security** | `restricted` standard, root prohibited, readOnlyRootFilesystem |
+| **Image Scanning** | Trivy in CI, vulnerable images blocked via OPA |
+| **Runtime Security** | Falco (anomaly detection in pods) |
+| **Backup Encryption** | Velero + restic with AES-256 encryption |
 
 ---
 
-## 🚀 Запуск в кластере
+## ⚡ Optimizations
 
-### 1. Подготовка Ubuntu нод (22.04 / 24.04)
+- **Resource Limits & Requests** – precise CPU/RAM values for each microservice.
+- **HPA (Horizontal Pod Autoscaler)** – based on CPU and custom metrics (RPS).
+- **Cluster Autoscaler** – automatic worker node addition when needed.
+- **Cache** – Redis as L2 cache for user profiles.
+- **Readiness & Liveness Probes** – fast restart of hung pods.
+- **Binary images:** `python:3.11-slim-bookworm` + multi-stage build.
+- **Anti-affinity** – distributing pods of the same service across different nodes.
+- **Spot instances** (for worker nodes) – 60-70% cost savings.
+
+---
+
+## 🚀 Deploy to Cluster
+
+### 1. Prepare Ubuntu nodes (22.04 / 24.04)
 
 ```bash
-# На всех нодах (master/worker)
+# On all nodes (master/worker)
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
   --cluster-init \
   --disable=traefik \
@@ -144,87 +146,87 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
   --write-kubeconfig-mode=644
 ```
 
-> Для второго мастера используйте `--server https://<master1>:6443 --token <token>`
+> For the second master, use `--server https://<master1>:6443 --token <token>`
 
-### 2. Установка CNI (Calico или Cilium)
+### 2. Install CNI (Calico or Cilium)
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27/manifests/calico.yaml
 ```
 
-### 3. Установка Ingress + MetalLB
+### 3. Install Ingress + MetalLB
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
-# Настроить IP-пул для LoadBalancer
+# Configure IP pool for LoadBalancer
 ```
 
-### 4. Деплой проекта
+### 4. Deploy the project
 
 ```bash
-# Клонирование репозитория
+# Clone the repository
 git clone https://github.com/kon-kyoto/microservices_lab.git
 cd microservices_lab
 
-# Установка Helm-чартов
+# Install Helm charts
 make deploy-all
 
-# Или через Kustomize
+# Or via Kustomize
 make deploy-kustomize
 ```
 
-### Makefile цели
+### Makefile targets
 
 ```makefile
-deploy-all:     # Установка всех сервисов + мониторинг
+deploy-all:     # Install all services + monitoring
 deploy-security # OPA, Falco, Sealed Secrets
 deploy-backup   # Velero + restic
-hpa-scale       # Активация горизонтального масштабирования
-test-ha         # Симуляция отказа мастер-ноды
+hpa-scale       # Enable horizontal autoscaling
+test-ha         # Simulate master node failure
 ```
 
 ---
 
-## 📊 Статусы ответов API
+## 📊 API Response Statuses
 
 | Code | Name | When to use |
 |------|------|--------------|
-| 200 | OK | GET, PUT, DELETE успешно |
-| 201 | Created | POST (ресурс создан) |
-| 204 | No Content | DELETE успешен |
-| 400 | Bad Request | Ошибка валидации |
-| 401 | Unauthorized | Нет токена / неверный токен |
-| 403 | Forbidden | Недостаточно прав |
-| 404 | Not Found | Ресурс не найден |
-| 409 | Conflict | Пользователь/email уже есть |
-| 429 | Too Many Requests | Лимит попыток логина |
-| 500 | Internal Server Error | Ошибка сервера |
-| 503 | Service Unavailable | Зависимый сервис недоступен |
+| 200 | OK | GET, PUT, DELETE successful |
+| 201 | Created | POST (resource created) |
+| 204 | No Content | DELETE successful |
+| 400 | Bad Request | Validation error |
+| 401 | Unauthorized | Missing / invalid token |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource not found |
+| 409 | Conflict | User/email already exists |
+| 429 | Too Many Requests | Login attempt limit exceeded |
+| 500 | Internal Server Error | Server error |
+| 503 | Service Unavailable | Dependent service is down |
 
 ---
 
-## 🗺 Планы развития
+## 🗺 Roadmap
 
 - [ ] **Istio service mesh** – mTLS, circuit breaking, canary deployments.
-- [ ] **GitOps** – ArgoCD для синхронизации кластера с репозиторием.
-- [ ] **Multi-cluster** – резервный кластер в облаке (k3s на AWS/GCP).
-- [ ] **Chaos Mesh** – тестирование устойчивости к сбоям.
-- [ ] **eBPF-мониторинг** – Cilium Hubble для сетевой наблюдаемости.
-- [ ] **Full audit logging** – все API-вызовы + аудит администраторов.
-- [ ] **Поддержка GPU** (для ML-сервисов) – если появятся в кластере.
+- [ ] **GitOps** – ArgoCD for cluster sync with repository.
+- [ ] **Multi-cluster** – backup cluster in the cloud (k3s on AWS/GCP).
+- [ ] **Chaos Mesh** – fault tolerance testing.
+- [ ] **eBPF monitoring** – Cilium Hubble for network observability.
+- [ ] **Full audit logging** – all API calls + admin audit.
+- [ ] **GPU support** (for ML services) – if available in the cluster.
 
 ---
 
-## 👤 Контрибьютор
+## 👤 Contributor
 
-**[kon-kyoto](https://github.com/kon-kyoto)** – архитектура, разработка, DevOps.
+**[kon-kyoto](https://github.com/kon-kyoto)** – architecture, development, DevOps.
 
 ---
 
-## 📄 Лицензия
+## 📄 License
 
 MIT © 2026
 
 ---
 
-*Последнее обновление: 08.06.2026 — переход на k3s HA-кластер, фаза hardening.*
+*Last updated: 2026-06-08 — migration to k3s HA cluster, hardening phase.*
