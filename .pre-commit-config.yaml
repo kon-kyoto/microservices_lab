@@ -1,0 +1,13 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black
+        language_version: python3.14.4
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace  # убирает пробелы в конце строк
+      - id: end-of-file-fixer    # добавляет пустую строку в конце файла
+      - id: check-yaml           # проверяет валидность YAML файлов
+      - id: check-added-large-files  # проверяет на большие файлы

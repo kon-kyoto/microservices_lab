@@ -137,8 +137,7 @@ def create_order():
         return jsonify({"error": "total_amount is required"}), 400
 
     if not order_name or order_name.strip() == "":
-        app.logger.warning(
-        )
+        app.logger.warning()
         return jsonify({"error": "order name is empty"}), 400
     try:
         total_amount = int(total_amount)
