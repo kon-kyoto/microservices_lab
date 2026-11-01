@@ -1,0 +1,41 @@
+stages:
+  - validate
+
+python-format:
+  stage: validate
+  image: python:3.12-slim
+  script:
+    - pip install black==24.8.0
+    - echo "Checking Python formatting with black..."
+    - black --check --diff --color infrastructure/ services/ tests/ || (echo "❌ Python formatting failed. Run 'black infrastructure/ services/ tests/' locally to fix." && exit 1)
+    - echo "✅ Python formatting OK"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+terraform-format:
+  stage: validate
+  image: hashicorp/terraform:1.9
+  entrypoint: [""]
+  script:
+    - cd terraform
+    - echo "Checking Terraform formatting..."
+    - terraform fmt -check -recursive -diff || (echo "❌ Terraform formatting failed. Run 'terraform fmt -recursive' locally to fix." && exit 1)
+    - echo "✅ Terraform formatting OK"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - changes:
+        - terraform/**/*
+
+yaml-lint:
+  stage: validate
+  image: python:3.12-slim
+  script:
+    - pip install yamllint
+    - echo "Checking YAML syntax..."
+    - yamllint -d relaxed k8s/ .gitlab-ci.yml || (echo "❌ YAML validation failed. Check yamllint output above." && exit 1)
+    - echo "✅ YAML validation OK"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
