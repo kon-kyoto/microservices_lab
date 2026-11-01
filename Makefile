@@ -83,11 +83,11 @@ build-kube:
 	kubectl create configmap init-db --from-file=./infrastructure/postgres/init.sql -n $(NS) \
 	  --dry-run=client -o yaml | kubectl apply -f -
 	kubeseal --format yaml < secret.yaml > sealed-secrets.yaml
-	kubectl apply -f sealed-secrets.yaml
-	kubectl apply -f pvc.yaml
-	kubectl apply -f deployment.yaml
-	kubectl apply -f service.yaml
-	kubectl apply -f ingress.yaml
+	kubectl apply -f k8s/sealed-secrets.yaml
+	kubectl apply -f k8s/pvc.yaml
+	kubectl apply -f k8s/deployment.yaml
+	kubectl apply -f k8s/service.yaml
+	kubectl apply -f k8s/ingress.yaml
 	@printf "$(RED)Add this line to /etc/hosts:$(NC)\n"
 	@printf "$(RED)  $$(minikube ip -p orderapp) orderapp.local$(NC)\n"
 	@printf "$(GREEN)$(SEP)$(NC)\n"
