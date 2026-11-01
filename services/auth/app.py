@@ -314,33 +314,22 @@ def verify():
 
 @app.route("/health", methods=["GET"])
 def health():
+    return jsonify({"status": "alive"}), 200
+
+
+@app.route("/ready", methods=["GET"])
+def ready():
     try:
-        cli_ip = get_client_ip(request)
         with get_db_cursor() as cur:
             cur.execute("SELECT 1")
-            redis_client.ping()
-        app.logger.info(f"INFO [200] ip: {cli_ip} - Health check passed")
-        return jsonify({"status": "healthy"}), 200
+        redis_client.ping()
+        return jsonify({"status": "ready"}), 200
     except redis.ConnectionError as e:
-        app.logger.error(
-            f"ERROR [503] ip: {cli_ip} - Health check failed - Redis error: {str(e)}"
-        )
-        return (
-            jsonify({"status": "unhealthy", "message": "Redis connection failed"}),
-            503,
-        )
+        return jsonify({"status": "not ready", "error": f"redis: {e}"}), 503
     except psycopg2.Error as e:
-        app.logger.error(
-            f"ERROR [503] ip: {cli_ip} - Health check failed - Database error: {str(e)}"
-        )
-        return (
-            jsonify({"status": "unhealthy", "message": "Database connection failed"}),
-            503,
-        )
+        return jsonify({"status": "not ready", "error": f"db: {e}"}), 503
     except Exception as e:
-        app.logger.error(f"ERROR [503] ip: {cli_ip} - Health check failed: {str(e)}")
-        return jsonify({"status": "unhealthy", "message": str(e)}), 503
-
+        return jsonify({"status": "not ready", "error": str(e)}), 503
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

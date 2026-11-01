@@ -307,19 +307,26 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "100m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 30
+          failureThreshold: 60      
+          periodSeconds: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: 5001
           initialDelaySeconds: 5
-          periodSeconds: 10 
+          periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health       
             port: 5001
-          initialDelaySeconds: 15
-          periodSeconds: 20
-
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
 ---
 # =========================
 # USERS SERVICE 
@@ -350,6 +357,13 @@ spec:
         app: orderApp
         component: users
     spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+      - name: wait-for-auth
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z auth 5001; do echo waiting for auth; sleep 2; done"]
       containers:
       - name: users
         image: orderusers:1.0
@@ -383,18 +397,25 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          failureThreshold: 60      
+          periodSeconds: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: 5002
           initialDelaySeconds: 5
-          periodSeconds: 10 
+          periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health       
             port: 5002
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
 
           
 ---
@@ -427,6 +448,13 @@ spec:
         app: orderApp
         component: orders
     spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+      - name: wait-for-auth
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z auth 5001; do echo waiting for auth; sleep 2; done"]
       containers:
       - name: orders
         image: orderorders:1.0
@@ -460,15 +488,22 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          failureThreshold: 60      
+          periodSeconds: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: 5003
           initialDelaySeconds: 5
-          periodSeconds: 10 
+          periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health       
             port: 5003
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
