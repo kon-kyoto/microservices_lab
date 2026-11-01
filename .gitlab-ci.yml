@@ -56,13 +56,13 @@ build-images:
   services:
     - name: docker:24.0.5-dind
       alias: docker
-      command: ["--insecure-registry", "172.17.0.1:5050"]
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
   script:
+    - docker info
     - echo "Building images with tag $CI_COMMIT_SHORT_SHA"
     - docker build -f ./gateway/Dockerfile . -t $CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA
