@@ -59,3 +59,10 @@
 #   - registry: 10.0.0.2:5000
 #     username: user
 #     password: pass
+# group_vars/all/containerd.yml (или в k8s_cluster.yml)
+containerd_registries_mirrors:
+  - prefix: "172.17.0.1:5050"
+    mirrors:
+      - host: "https://172.17.0.1:5050"
+        capabilities: ["pull", "resolve"]
+        skip_verify: true 

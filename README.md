@@ -1,232 +1,197 @@
-# 🐳 Microservices Lab → Kubernetes Cluster
+# Microservices Lab → Kubernetes (Kubespray + GitLab CI)
 
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![k3s](https://img.shields.io/badge/k3s-1.28+-FFC61A?logo=rancher&logoColor=black)](https://k3s.io/)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org/)
-[![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker&logoColor=white)](https://docker.com/)
-[![Flask](https://img.shields.io/badge/Flask-2.3+-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+Учебный проект: микросервисное приложение (auth, users, orders) на Flask + PostgreSQL + Redis, развёрнутое в Kubernetes-кластере, созданном через Terraform и Kubespray. CI/CD — GitLab CI, образы — в GitLab Container Registry.
 
-> **Project Evolution:** from `docker-compose` to a production-ready cluster on **k3s** with 2 master and 2 worker nodes.  
-> Main focus: security, high availability, resource optimization, and observability.
-
----
-
-## 📋 Table of Contents
-
-1. [Cluster Architecture](#-cluster-architecture)
-2. [Technology Stack](#-technology-stack)
-3. [Project Structure](#-project-structure)
-4. [Security](#-security)
-5. [Optimizations](#-optimizations)
-6. [Deploy to Cluster](#-deploy-to-cluster)
-7. [API Response Statuses](#-api-response-statuses)
-8. [Roadmap](#-roadmap)
-
----
-
-## 🏗 Cluster Architecture
+## Архитектура
 
 ```
-┌─────────────────────────────────────────────┐
-│           Ingress (Traefik / Nginx)          │
-├─────────────────────────────────────────────┤
-│            API Gateway (OpenResty)           │
-├──────────────┬──────────────┬────────────────┤
-│   Master-1   │   Master-2    │  k3s control  │
-│  (control)   │   (control)   │    plane       │
-├──────────────┼──────────────┼────────────────┤
-│  Worker-1    │  Worker-2     │                │
-│  (app, db)   │  (app, db)    │  (HA, etcd)    │
-└──────────────┴──────────────┴────────────────┘
-        ▲               ▲
-        └───────┬───────┘
-                │
-         Persistent Volumes
-         (Longhorn / Local)
+Terraform (Yandex Cloud)
+   └── VM: 1 master + 2 worker
+         └── Kubespray (Ansible)
+               └── Kubernetes cluster
+                     └── app-ns: auth, users, orders, gateway, frontend
+                           ├── PostgreSQL (PVC)
+                           ├── Redis (emptyDir)
+                           └── Ingress (nginx)
 ```
 
-- **2 Master nodes:** high availability for control plane (k3s with embedded etcd).
-- **2 Worker nodes:** running microservices, PostgreSQL, Redis with replication.
-- **Load balancing:** via Ingress Controller + MetalLB (for on-prem).
-- **Network policies:** traffic restriction between services (Calico / Cilium).
+- **Ingress** — `orderapp.local` → `frontend-gateway:80`
+- **Registry** — GitLab Container Registry (`172.17.0.1:5050`)
+- **Secrets** — Sealed Secrets (контроллер в `kube-system`)
+- **Мониторинг** — план (kube-prometheus-stack + Loki)
 
----
+## Стек
 
-## 🧩 Technology Stack
+| Слой | Технологии |
+|------|------------|
+| IaC | Terraform (Yandex Cloud provider) |
+| Кластер | Kubespray (Ansible), containerd |
+| Приложение | Python 3.12, Flask, gunicorn |
+| БД | PostgreSQL 15, Redis 7 |
+| Gateway | nginx (reverse proxy + static) |
+| CI/CD | GitLab CI, Docker-in-Docker |
+| Registry | GitLab Container Registry (HTTPS, self-signed) |
 
-| Component          | Technologies                                                                 |
-|--------------------|-----------------------------------------------------------------------------|
-| **Container**      | Docker, k3s (containerd)                                                   |
-| **Orchestration**  | Kubernetes 1.28+, Helm, Kustomize                                          |
-| **Service Mesh**   | (planned) Istio / Linkerd for mTLS and observability                       |
-| **API Gateway**    | OpenResty (Nginx + Lua) → routing, rate limiting, JWT                      |
-| **Microservices**  | Python 3.11 + Flask, JWT, psycopg2-binary                                  |
-| **Databases**      | PostgreSQL 15 (StatefulSet + replicas), Redis 7 (sentinel)                 |
-| **Storage**        | Longhorn (distributed block), S3-compatible (minIO for logs)               |
-| **Observability**  | Prometheus + Grafana + Loki (log aggregation), Tempo (traces)              |
-| **Security**       | k3s Hardening, OPA/Gatekeeper, Falco, Trivy (image scanning), Sealed Secrets|
-| **Backup**         | Velero + restic (to S3)                                                    |
-| **CI/CD**          | GitHub Actions + ArgoCD (GitOps)                                           |
-
----
-
-## 📁 Project Structure
+## Структура репозитория
 
 ```
-microservices_lab/
-├── kubernetes/                     # k8s manifests
-│   ├── base/                       # Base configurations
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── ingress.yaml
-│   │   └── kustomization.yaml
-│   ├── overlays/                   # Environments
-│   │   ├── dev/
-│   │   ├── staging/
-│   │   └── production/             # HA, replicas, resources
-│   ├── helm/                       # Helm charts
-│   │   ├── auth-service/
-│   │   ├── users-service/
-│   │   └── orders-service/
-│   ├── pv/                         # PersistentVolume + PVC
-│   │   ├── postgres-pv.yaml
-│   │   └── redis-pv.yaml
-│   └── network-policies/           # Network segmentation
-├── services/                       # Microservices (Python)
-├── gateway/                        # API Gateway (OpenResty)
-├── infrastructure/                 # PostgreSQL, Redis (StatefulSets)
-├── monitoring/                     # Prometheus, Grafana, Loki
-├── security/                       # OPA policies, Falco rules
-├── scripts/                        # Deployment and backup utilities
-├── Makefile                        # Cluster management commands
-└── README.md
+.
+├── terraform/              # VM + inventory для Kubespray
+│   ├── main.tf
+│   ├── modules/vm_module/
+│   └── cloud-init.yaml
+├── kubespray/              # клон upstream, inventory вынесен
+├── k8s/                    # манифесты
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── ingress.yaml
+│   ├── pvc.yaml
+│   └── sealed-secrets.yaml
+├── services/               # auth, users, orders (Flask)
+├── gateway/                # nginx.conf + Dockerfile
+├── frontend/               # статика (HTML/CSS/JS)
+├── infrastructure/postgres/init.sql
+├── tests/                  # pytest + requests
+├── .gitlab-ci.yml
+└── Makefile
 ```
 
----
+## Быстрый старт (с нуля)
 
-## 🔒 Security
-
-| Measure | Implementation |
-|---------|----------------|
-| **mTLS** | Istio / Linkerd (service→service encryption) |
-| **JWT validation** | At API Gateway level (validation before routing) |
-| **Secrets** | Sealed Secrets + external provider (Bitwarden / Vault) |
-| **Network Policies** | deny-by-default, explicit allows only (e.g., gateway → auth) |
-| **Pod Security** | `restricted` standard, root prohibited, readOnlyRootFilesystem |
-| **Image Scanning** | Trivy in CI, vulnerable images blocked via OPA |
-| **Runtime Security** | Falco (anomaly detection in pods) |
-| **Backup Encryption** | Velero + restic with AES-256 encryption |
-
----
-
-## ⚡ Optimizations
-
-- **Resource Limits & Requests** – precise CPU/RAM values for each microservice.
-- **HPA (Horizontal Pod Autoscaler)** – based on CPU and custom metrics (RPS).
-- **Cluster Autoscaler** – automatic worker node addition when needed.
-- **Cache** – Redis as L2 cache for user profiles.
-- **Readiness & Liveness Probes** – fast restart of hung pods.
-- **Binary images:** `python:3.11-slim-bookworm` + multi-stage build.
-- **Anti-affinity** – distributing pods of the same service across different nodes.
-- **Spot instances** (for worker nodes) – 60-70% cost savings.
-
----
-
-## 🚀 Deploy to Cluster
-
-### 1. Prepare Ubuntu nodes (22.04 / 24.04)
+### 1. Инфраструктура (Terraform)
 
 ```bash
-# On all nodes (master/worker)
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
-  --cluster-init \
-  --disable=traefik \
-  --flannel-backend=none \
-  --write-kubeconfig-mode=644
+cd terraform
+export TF_VAR_yc_token=$(yc iam create-token)
+export TF_VAR_yc_cloud_id=$(yc config get cloud-id)
+export TF_VAR_yc_folder_id=$(yc config get folder-id)
+terraform init && terraform apply -auto-approve
 ```
 
-> For the second master, use `--server https://<master1>:6443 --token <token>`
+Terraform создаёт VM и генерирует inventory для Kubespray.
 
-### 2. Install CNI (Calico or Cilium)
+### 2. Кластер (Kubespray)
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27/manifests/calico.yaml
+cd kubespray
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+ansible-playbook -i ../inventory/mycluster/inventory.ini cluster.yml -b -v
 ```
 
-### 3. Install Ingress + MetalLB
+### 3. Kubeconfig
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
-# Configure IP pool for LoadBalancer
+MASTER_IP=$(cd terraform && terraform output -raw master_external_ip)
+ssh hex@$MASTER_IP "sudo cat /etc/kubernetes/admin.conf" > ~/.kube/config-kubespray
+sed -i "s/127.0.0.1/$MASTER_IP/g" ~/.kube/config-kubespray
+export KUBECONFIG=~/.kube/config-kubespray
+kubectl get nodes
 ```
 
-### 4. Deploy the project
+### 4. Настройка containerd (доверие к Registry)
+
+В `group_vars/all/containerd.yml` (рядом с inventory):
+
+```yaml
+containerd_registries_mirrors:
+  - prefix: "172.17.0.1:5050"
+    mirrors:
+      - host: "https://172.17.0.1:5050"
+        capabilities: ["pull", "resolve"]
+        skip_verify: true
+```
 
 ```bash
-# Clone the repository
-git clone https://github.com/kon-kyoto/microservices_lab.git
-cd microservices_lab
-
-# Install Helm charts
-make deploy-all
-
-# Or via Kustomize
-make deploy-kustomize
+ansible-playbook -i ../inventory/mycluster/inventory.ini cluster.yml -b --tags container-engine
 ```
 
-### Makefile targets
+### 5. GitLab CI/CD Variables
 
-```makefile
-deploy-all:     # Install all services + monitoring
-deploy-security # OPA, Falco, Sealed Secrets
-deploy-backup   # Velero + restic
-hpa-scale       # Enable horizontal autoscaling
-test-ha         # Simulate master node failure
+В GitLab → **Settings → CI/CD → Variables**:
+
+| Key | Type | Значение |
+|-----|------|----------|
+| `KUBECONFIG_CONTENT` | File | содержимое `~/.kube/config-kubespray` |
+| `GITLAB_REGISTRY_TOKEN` | Masked | PAT с правами `read_registry` |
+
+### 6. Деплой
+
+```bash
+git push origin master
 ```
 
----
+CI:
+1. **validate** — black, terraform fmt, yamllint
+2. **build** — 4 образа → GitLab Registry (тег `$CI_COMMIT_SHORT_SHA`), только при изменениях в `services/`, `gateway/`, `frontend/`
+3. **deploy** — **manual**: `kubectl apply` + `kubectl set image` + `rollout status`
 
-## 📊 API Response Statuses
+Нажми **Run** на job `deploy-to-kubespray` в GitLab UI.
 
-| Code | Name | When to use |
-|------|------|--------------|
-| 200 | OK | GET, PUT, DELETE successful |
-| 201 | Created | POST (resource created) |
-| 204 | No Content | DELETE successful |
-| 400 | Bad Request | Validation error |
-| 401 | Unauthorized | Missing / invalid token |
-| 403 | Forbidden | Insufficient permissions |
-| 404 | Not Found | Resource not found |
-| 409 | Conflict | User/email already exists |
-| 429 | Too Many Requests | Login attempt limit exceeded |
-| 500 | Internal Server Error | Server error |
-| 503 | Service Unavailable | Dependent service is down |
+## Локальная разработка
 
----
+```bash
+make build           # docker build + minikube + kubectl apply
+make test            # pytest (port-forward на :8080)
+make format          # black + prettier + terraform fmt + yamllint
+make update          # rebuild images + rollout restart
+make rebuild         # clear + build (с нуля)
+make clear           # удалить minikube, образы, venv
+```
 
-## 🗺 Roadmap
+Тесты ходят на `http://localhost:8080` (через `kubectl port-forward`).
 
-- [ ] **Istio service mesh** – mTLS, circuit breaking, canary deployments.
-- [ ] **GitOps** – ArgoCD for cluster sync with repository.
-- [ ] **Multi-cluster** – backup cluster in the cloud (k3s on AWS/GCP).
-- [ ] **Chaos Mesh** – fault tolerance testing.
-- [ ] **eBPF monitoring** – Cilium Hubble for network observability.
-- [ ] **Full audit logging** – all API calls + admin audit.
-- [ ] **GPU support** (for ML services) – if available in the cluster.
+## Секреты
 
----
+- `secret.yaml` — исходник (в `.gitignore`), **не коммитить**.
+- `k8s/sealed-secrets.yaml` — зашифрованная версия, коммитится.
+- Генерация: `kubeseal --cert pub-cert.pem --format yaml < secret.yaml > k8s/sealed-secrets.yaml`.
 
-## 👤 Contributor
+## Что сделано / что в планах
 
-**[kon-kyoto](https://github.com/kon-kyoto)** – architecture, development, DevOps.
+**Сделано:**
+- Terraform: VM + inventory
+- Kubespray: 1 master + 2 worker
+- GitLab CI: validate → build → manual deploy
+- GitLab Container Registry (HTTPS, self-signed)
+- Sealed Secrets
+- Ingress (nginx)
+- Probes: startupProbe, readinessProbe (/ready), livenessProbe (/health)
+- initContainer: wait-for-postgres/redis/auth
 
----
+**В планах:**
+- Мониторинг: kube-prometheus-stack + Loki
+- HPA на orders-service
+- NetworkPolicy (deny-by-default)
+- ArgoCD (GitOps)
+- 3 control-plane (HA)
 
-## 📄 License
+## Известные ограничения
 
-MIT © 2026
+- **1 control-plane** — не HA. Для HA нужно 3 master (Kubespray).
+- **Redis на emptyDir** — данные теряются при рестарте пода.
+- **Self-signed сертификат** Registry — `skip_verify: true` в containerd.
+- **`kubectl set image` для всех 4 сервисов** при manual deploy — образы собираются все, если изменилась любая из папок.
 
----
+## Полезные команды
 
-*Last updated: 2026-06-08 — migration to k3s HA cluster, hardening phase.*
+```bash
+# статус кластера
+kubectl get nodes -o wide
+kubectl get pods -n app-ns
+
+# логи
+kubectl logs -n app-ns deploy/auth-service --tail=50
+kubectl logs -n app-ns deploy/auth-service --previous --tail=50
+
+# rollout
+kubectl rollout restart -n app-ns deploy
+kubectl rollout status -n app-ns deploy/auth-service --timeout=180s
+
+# Registry
+curl -k https://172.17.0.1:5050/v2/
+```
+
+## Лицензия
+
+MIT
