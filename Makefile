@@ -60,10 +60,13 @@ build-minikube:
 	@printf "$(CYAN)START BUILD-MINIKUBE$(NC)\n"
 	@printf "$(CYAN)$(SEP)$(NC)\n"
 	minikube start -p orderapp --cpus 2 --memory 3072
+	kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.1/controller.yaml
+	kubectl wait --for=condition=Available deployment/sealed-secrets-controller -n kube-system --timeout=120s
 	minikube image load ordernginx:1.0 -p orderapp
 	minikube image load orderauth:1.0 -p orderapp
 	minikube image load orderusers:1.0 -p orderapp
 	minikube image load orderorders:1.0 -p orderapp
+	minikube addons enable ingress -p orderapp
 	@printf "$(GREEN)$(SEP)$(NC)\n"
 	@printf "$(GREEN)END BUILD-MINIKUBE$(NC)\n"
 	@printf "$(GREEN)$(SEP)$(NC)\n"
@@ -79,10 +82,14 @@ build-kube:
 	kubectl create namespace $(NS) --dry-run=client -o yaml | kubectl apply -f -
 	kubectl create configmap init-db --from-file=./infrastructure/postgres/init.sql -n $(NS) \
 	  --dry-run=client -o yaml | kubectl apply -f -
+	kubeseal --format yaml < secret.yaml > sealed-secrets.yaml
 	kubectl apply -f sealed-secrets.yaml
 	kubectl apply -f pvc.yaml
 	kubectl apply -f deployment.yaml
 	kubectl apply -f service.yaml
+	kubectl apply -f ingress.yaml
+	@printf "$(RED)Add this line to /etc/hosts:$(NC)\n"
+	@printf "$(RED)  $$(minikube ip -p orderapp) orderapp.local$(NC)\n"
 	@printf "$(GREEN)$(SEP)$(NC)\n"
 	@printf "$(GREEN)END BUILD-KUBE$(NC)\n"
 	@printf "$(GREEN)$(SEP)$(NC)\n"

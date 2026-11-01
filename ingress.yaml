@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orderapp-ingress
+  namespace: app-ns
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: orderapp.local   
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-gateway
+                port:
+                  number: 80
