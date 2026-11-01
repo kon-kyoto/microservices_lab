@@ -52,7 +52,7 @@ module "worker_2" {
   zone            = "ru-central1-d"
 }
 resource "local_file" "kubespray_inventory" {
-  filename = "${path.module}/../kubespray/inventory/mycluster/inventory.ini"
+  filename = "${path.module}/../inventory/mycluster/inventory.ini"
 
   content = templatefile("${path.module}/templates/inventory.ini.tftpl", {
     control_planes = [
