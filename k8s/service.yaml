@@ -14,14 +14,14 @@ metadata:
 
 spec:
   type: NodePort
-  selector: 
+  selector:
     app: orderApp
     component: gateway
   ports:
-  - port: 80
-    targetPort: 80
-    nodePort: 30080
-    name: http
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+      name: http
 
 ---
 # ================
@@ -42,9 +42,9 @@ spec:
     app: orderApp
     component: ps-db
   ports:
-  - port: 5432
-    targetPort: 5432
-    name: postgres
+    - port: 5432
+      targetPort: 5432
+      name: postgres
 
 ---
 # ================
@@ -65,9 +65,9 @@ spec:
     app: orderApp
     component: redis
   ports:
-  - port: 6379
-    targetPort: 6379
-    name: redis
+    - port: 6379
+      targetPort: 6379
+      name: redis
 
 ---
 # ================
@@ -89,9 +89,9 @@ spec:
     app: orderApp
     component: auth
   ports:
-  - port: 5001
-    targetPort: 5001
-    name: http
+    - port: 5001
+      targetPort: 5001
+      name: http
 
 ---
 # ================
@@ -113,9 +113,9 @@ spec:
     app: orderApp
     component: users
   ports:
-  - port: 5002
-    targetPort: 5002
-    name: http
+    - port: 5002
+      targetPort: 5002
+      name: http
 
 ---
 # ================
@@ -137,6 +137,6 @@ spec:
     app: orderApp
     component: orders
   ports:
-  - port: 5003
-    targetPort: 5003
-    name: http
+    - port: 5003
+      targetPort: 5003
+      name: http

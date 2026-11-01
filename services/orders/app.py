@@ -379,5 +379,6 @@ def ready():
     except Exception as e:
         return jsonify({"status": "not ready", "error": str(e)}), 503
 
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5003)

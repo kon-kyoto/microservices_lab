@@ -112,12 +112,33 @@ format:
 	@printf "$(CYAN)$(SEP)$(NC)\n"
 	@printf "$(CYAN)START FORMAT$(NC)\n"
 	@printf "$(CYAN)$(SEP)$(NC)\n"
+	@printf "$(YELLOW)[1/4] Python (black)$(NC)\n"
 	@if [ ! -d $(VENV) ]; then \
 		$(PY) -m venv $(VENV); \
 		./$(VENV)/bin/pip install --upgrade pip; \
 		./$(VENV)/bin/pip install --no-cache-dir -r tests/requirements.txt; \
 	fi
 	@./$(VENV)/bin/black infrastructure/ services/ tests/
+	@printf "$(YELLOW)[2/4] JS/HTML/YAML (prettier)$(NC)\n"
+	@if ! command -v npx >/dev/null 2>&1; then \
+		printf "$(RED)npx not found. Install Node.js first.$(NC)\n"; \
+		exit 1; \
+	fi
+	@cd frontend && npx --yes prettier@3.3.3 --write "js/**/*.js" "*.html" "css/**/*.css"
+	@npx --yes prettier@3.3.3 --write "k8s/**/*.yaml" ".gitlab-ci.yml"
+	@printf "$(YELLOW)[3/4] Terraform (fmt)$(NC)\n"
+	@if command -v terraform >/dev/null 2>&1; then \
+		cd terraform && terraform fmt -recursive; \
+	else \
+		printf "$(RED)terraform not found. Skipping.$(NC)\n"; \
+	fi
+	@printf "$(YELLOW)[4/4] YAML (yamllint check)$(NC)\n"
+	@if command -v yamllint >/dev/null 2>&1; then \
+		yamllint -d relaxed k8s/ .gitlab-ci.yml || \
+		printf "$(RED)yamllint found issues (not auto-fixable). Fix manually.$(NC)\n"; \
+	else \
+		printf "$(RED)yamllint not found. Install via 'pip install yamllint'.$(NC)\n"; \
+	fi
 	@printf "$(GREEN)$(SEP)$(NC)\n"
 	@printf "$(GREEN)END FORMAT$(NC)\n"
 	@printf "$(GREEN)$(SEP)$(NC)\n"

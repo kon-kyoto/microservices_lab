@@ -20,7 +20,7 @@ python-format:
 
 terraform-format:
   stage: validate
-  image: 
+  image:
     name: hashicorp/terraform:1.9
     entrypoint: [""]
   script:

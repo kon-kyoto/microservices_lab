@@ -6,7 +6,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: orderapp.local   
+    - host: orderapp.local
       http:
         paths:
           - path: /
