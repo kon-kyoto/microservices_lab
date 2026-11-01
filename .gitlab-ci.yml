@@ -56,9 +56,9 @@ build-images:
   services:
     - name: docker:24.0.5-dind
       alias: docker
+      command: ["--insecure-registry=172.17.0.2:5050"]
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
