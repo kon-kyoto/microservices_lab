@@ -136,7 +136,10 @@ spec:
         - name: POSTGRES_USER
           value: "postgres"
         - name: POSTGRES_PASSWORD
-          value: "password"
+          valueFrom: 
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
       volumes:
@@ -187,18 +190,15 @@ spec:
           name: redis
           protocol: TCP
         command:
-        - "redis-server"
-        args:
-        - "--requirepass"
-        - "$(REDIS_PASSWORD)"
-        - "--protected-mode"
-        - "yes"
-        - "--appendonly"
-        - "no"
-
+        - "sh"
+        - "-c"
+        - 'exec redis-server --requirepass "$REDIS_PASSWORD" --protected-mode yes --appendonly no'
         env:
         - name: REDIS_PASSWORD
-          value: "password"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: REDIS_PASSWORD
 
         resources:
           requests:
@@ -210,25 +210,17 @@ spec:
         readinessProbe:
           exec:
             command:
-            - "redis-cli"
-            - "-a"
-            - "$REDIS_PASSWORD"
-            - "ping" 
-            - "|"
-            - "grep"
-            - "PONG"
+              - sh
+              - -c
+              - redis-cli -a "$REDIS_PASSWORD" ping | grep PONG
           initialDelaySeconds: 5
           periodSeconds: 10 
         livenessProbe:
           exec:
             command:
-            - "redis-cli"
-            - "-a"
-            - "$REDIS_PASSWORD"
-            - "ping" 
-            - "|"
-            - "grep"
-            - "PONG"
+              - sh
+              - -c
+              - redis-cli -a "$REDIS_PASSWORD" ping | grep PONG
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
@@ -287,16 +279,25 @@ spec:
           value: "microservices_db"
         - name: POSTGRES_USER
           value: "postgres"
-        - name: POSTGRES_PASSWORD
-          value: "password"
         - name: REDIS_HOST
           value: "redis"
         - name: REDIS_PORT
           value: "6379"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
         - name: REDIS_PASSWORD
-          value: "password"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: REDIS_PASSWORD
         - name: SECRET_KEY
-          value: "develop"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SECRET_KEY
         - name: TIMEDELTA
           value: "24"
         resources:
@@ -366,9 +367,15 @@ spec:
         - name: POSTGRES_USER
           value: "postgres"
         - name: POSTGRES_PASSWORD
-          value: "password"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
         - name: SECRET_KEY
-          value: "develop"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SECRET_KEY
         resources:
           requests:
             memory: "128Mi"
@@ -437,9 +444,15 @@ spec:
         - name: POSTGRES_USER
           value: "postgres"
         - name: POSTGRES_PASSWORD
-          value: "password"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
         - name: SECRET_KEY
-          value: "develop"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SECRET_KEY
         resources:
           requests:
             memory: "128Mi"
