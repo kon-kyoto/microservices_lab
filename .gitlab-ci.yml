@@ -1,5 +1,10 @@
 stages:
   - validate
+  - build
+
+# ===================
+# FORMAT
+# ===================
 
 python-format:
   stage: validate
@@ -37,6 +42,36 @@ yaml-lint:
     - echo "Checking YAML syntax..."
     - yamllint -d relaxed k8s/ .gitlab-ci.yml || (echo "❌ YAML validation failed. Check yamllint output above." && exit 1)
     - echo "✅ YAML validation OK"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "master"
+
+# ===================
+# IMAGES
+# ===================
+
+build-images:
+  stage: build
+  image: docker:24.0.5-cli
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  script:
+    - echo "Building images with tag $CI_COMMIT_SHORT_SHA"
+    - docker build -f ./gateway/Dockerfile . -t $CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA
+    - docker build -f ./services/auth/Dockerfile ./services/auth/ -t $CI_REGISTRY_IMAGE/orderauth:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE/orderauth:$CI_COMMIT_SHORT_SHA
+    - docker build -f ./services/users/Dockerfile ./services/users/ -t $CI_REGISTRY_IMAGE/orderusers:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE/orderusers:$CI_COMMIT_SHORT_SHA
+    - docker build -f ./services/orders/Dockerfile ./services/orders/ -t $CI_REGISTRY_IMAGE/orderorders:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE/orderorders:$CI_COMMIT_SHORT_SHA
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "master"
