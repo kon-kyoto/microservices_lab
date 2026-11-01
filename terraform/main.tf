@@ -51,3 +51,22 @@ module "worker_2" {
   cloud_init_file = "${path.module}/cloud-init.yaml"
   zone            = "ru-central1-d"
 }
+resource "local_file" "kubespray_inventory" {
+  filename = "${path.module}/../kubespray/inventory/mycluster/inventory.ini"
+
+  content = templatefile("${path.module}/templates/inventory.ini.tftpl", {
+    control_planes = [
+      { name = "master", ip = module.master.vm_external_ip }
+    ]
+    workers = [
+      { name = "worker-1", ip = module.worker_1.vm_external_ip },
+      { name = "worker-2", ip = module.worker_2.vm_external_ip }
+    ]
+  })
+
+  depends_on = [
+    module.master,
+    module.worker_1,
+    module.worker_2
+  ]
+}
