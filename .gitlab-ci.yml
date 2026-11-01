@@ -15,8 +15,9 @@ python-format:
 
 terraform-format:
   stage: validate
-  image: hashicorp/terraform:1.9
-  entrypoint: [""]
+  image: 
+    name: hashicorp/terraform:1.9
+    entrypoint: [""]
   script:
     - cd terraform
     - echo "Checking Terraform formatting..."
