@@ -28,6 +28,8 @@ spec:
         app: orderApp
         component: gateway
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       containers:
         - name: nginx
           image: ordernginx:1.0
@@ -87,6 +89,8 @@ spec:
         component: ps-db
         type: data
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       containers:
         - name: postgresql-db
           image: postgres:15-alpine
@@ -182,6 +186,8 @@ spec:
         component: redis
         type: data
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       containers:
         - name: redis
           image: redis:7-alpine
@@ -263,6 +269,8 @@ spec:
         app: orderApp
         component: auth
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
@@ -366,6 +374,8 @@ spec:
         app: orderApp
         component: users
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
@@ -466,6 +476,8 @@ spec:
         app: orderApp
         component: orders
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36

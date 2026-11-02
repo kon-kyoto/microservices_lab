@@ -18,7 +18,8 @@ metrics_server_enabled: false
 # metrics_server_replicas: 1
 
 # Rancher Local Path Provisioner
-local_path_provisioner_enabled: false
+local_path_provisioner_enabled: true
+local_path_provisioner_is_default_storageclass: true
 # local_path_provisioner_namespace: "local-path-storage"
 # local_path_provisioner_storage_class: "local-path"
 # local_path_provisioner_reclaim_policy: Delete
