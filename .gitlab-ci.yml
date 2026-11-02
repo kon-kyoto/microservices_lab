@@ -1,6 +1,7 @@
 stages:
   - validate
   - build
+  - deploy
 
 # ===================
 # VALIDATE
@@ -80,3 +81,44 @@ build-images:
         - services/**/*
         - gateway/**/*
         - frontend/**/*
+
+deploy-to-kubespray:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  needs:
+    - job: build-images
+      optional: true
+  before_script:
+    - mkdir -p ~/.kube
+    - cp "$KUBE_CONFIG" ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - kubectl config set-cluster cluster.local --insecure-skip-tls-verify=true
+  script:
+    - kubectl create namespace app-ns --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl create configmap init-db --from-file=./infrastructure/postgres/init.sql -n app-ns --dry-run=client -o yaml | kubectl apply -f -
+    
+    - kubectl create secret docker-registry gitlab-registry-secret -n app-ns \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_REGISTRY_USER \
+        --docker-password=$GITLAB_REGISTRY_TOKEN \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - kubectl apply -f k8s/pvc.yaml
+    - kubectl apply -f k8s/service.yaml
+    - kubectl apply -f k8s/ingress.yaml
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl apply -f k8s/sealed-secrets.yaml || true
+
+    - kubectl set image deployment/auth-service auth=$CI_REGISTRY_IMAGE/orderauth:$CI_COMMIT_SHORT_SHA -n app-ns
+    - kubectl set image deployment/users-service users=$CI_REGISTRY_IMAGE/orderusers:$CI_COMMIT_SHORT_SHA -n app-ns
+    - kubectl set image deployment/orders-service orders=$CI_REGISTRY_IMAGE/orderorders:$CI_COMMIT_SHORT_SHA -n app-ns
+    - kubectl set image deployment/frontend-gateway nginx=$CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA -n app-ns
+
+    - kubectl rollout status deployment/auth-service -n app-ns --timeout=180s
+    - kubectl rollout status deployment/users-service -n app-ns --timeout=180s
+    - kubectl rollout status deployment/orders-service -n app-ns --timeout=180s
+    - kubectl rollout status deployment/frontend-gateway -n app-ns --timeout=180s
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: manual
+  allow_failure: false

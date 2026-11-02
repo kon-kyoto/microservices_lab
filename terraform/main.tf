@@ -14,12 +14,6 @@ resource "yandex_vpc_subnet" "subnet_e" {
   network_id     = yandex_vpc_network.net.id
   v4_cidr_blocks = ["192.168.11.0/24"]
 }
-resource "yandex_vpc_subnet" "subnet_d" {
-  name           = "subnet-d"
-  zone           = "ru-central1-d"
-  network_id     = yandex_vpc_network.net.id
-  v4_cidr_blocks = ["192.168.12.0/24"]
-}
 
 module "master" {
   source          = "./modules/vm_module"
@@ -41,16 +35,6 @@ module "worker_1" {
   cloud_init_file = "${path.module}/cloud-init.yaml"
   zone            = "ru-central1-e"
 }
-module "worker_2" {
-  source          = "./modules/vm_module"
-  vm_name         = "k3s-worker-2"
-  subnet_id       = yandex_vpc_subnet.subnet_d.id
-  vm_cores        = 2
-  vm_memory       = 4
-  vm_size         = 20
-  cloud_init_file = "${path.module}/cloud-init.yaml"
-  zone            = "ru-central1-d"
-}
 resource "local_file" "kubespray_inventory" {
   filename = "${path.module}/../inventory/mycluster/inventory.ini"
 
@@ -60,13 +44,11 @@ resource "local_file" "kubespray_inventory" {
     ]
     workers = [
       { name = "worker-1", ip = module.worker_1.vm_external_ip },
-      { name = "worker-2", ip = module.worker_2.vm_external_ip }
     ]
   })
 
   depends_on = [
     module.master,
     module.worker_1,
-    module.worker_2
   ]
 }
