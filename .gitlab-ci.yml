@@ -84,14 +84,15 @@ build-images:
 
 deploy-to-kubespray:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: 
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
   needs:
     - job: build-images
       optional: true
   before_script:
     - mkdir -p ~/.kube
-    - echo $KUBE_CONFIG
-    - cp $KUBE_CONFIG ~/.kube/config
+    - cp "$KUBE_CONFIG" ~/.kube/config
     - chmod 600 ~/.kube/config
     - kubectl config set-cluster cluster.local --insecure-skip-tls-verify=true
   script:
