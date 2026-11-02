@@ -1,10 +1,9 @@
 stages:
   - validate
   - build
-  - deploy
 
 # ===================
-# VALIDATE 
+# VALIDATE
 # ===================
 
 python-format:
@@ -81,12 +80,3 @@ build-images:
         - services/**/*
         - gateway/**/*
         - frontend/**/*
-
-stages:
-  - validate
-  - build
-  - deploy
-
-variables:
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_HOST: tcp://docker:2375
