@@ -100,7 +100,7 @@ deploy-to-kubespray:
     - kubectl create namespace app-ns --dry-run=client -o yaml | kubectl apply -f -
     - kubectl create configmap init-db --from-file=./infrastructure/postgres/init.sql -n app-ns --dry-run=client -o yaml | kubectl apply -f -
 
-    - kubectl create secret docker-registry gitlab-registry-secret -n app-ns --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$GITLAB_REGISTRY_TOKEN --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl create secret docker-registry gitlab-registry-secret -n app-ns --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --dry-run=client -o yaml | kubectl apply -f -
 
     - kubectl apply -f k8s/pvc.yaml
     - kubectl apply -f k8s/service.yaml
