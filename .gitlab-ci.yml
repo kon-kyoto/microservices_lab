@@ -90,6 +90,7 @@ deploy-to-kubespray:
       optional: true
   before_script:
     - mkdir -p ~/.kube
+    - echo $KUBE_CONFIG
     - cp $KUBE_CONFIG ~/.kube/config
     - chmod 600 ~/.kube/config
     - kubectl config set-cluster cluster.local --insecure-skip-tls-verify=true
