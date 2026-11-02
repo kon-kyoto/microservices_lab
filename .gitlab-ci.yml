@@ -90,37 +90,3 @@ stages:
 variables:
   DOCKER_TLS_CERTDIR: ""
   DOCKER_HOST: tcp://docker:2375
-
-# ===================
-# DEPLOY 
-# ===================
-deploy-to-kubespray:
-  stage: deploy
-  image: bitnami/kubectl:latest
-  before_script:
-    - export KUBECONFIG=$KUBECONFIG_CONTENT
-    - kubectl cluster-info
-    - kubectl create secret docker-registry gitlab-registry-secret -n app-ns \
-        --docker-server=$CI_REGISTRY \
-        --docker-username=$CI_REGISTRY_USER \
-        --docker-password=$GITLAB_REGISTRY_TOKEN \
-        --dry-run=client -o yaml | kubectl apply -f -
-  script:
-    - echo "Deploying tag $CI_COMMIT_SHORT_SHA"
-    - kubectl create namespace app-ns --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create configmap init-db --from-file=./infrastructure/postgres/init.sql -n app-ns --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl apply -f k8s/pvc.yaml
-    - kubectl apply -f k8s/service.yaml
-    - kubectl apply -f k8s/ingress.yaml
-    - kubectl apply -f k8s/deployment.yaml
-    - kubectl set image deployment/auth-service auth=$CI_REGISTRY_IMAGE/orderauth:$CI_COMMIT_SHORT_SHA -n app-ns
-    - kubectl set image deployment/users-service users=$CI_REGISTRY_IMAGE/orderusers:$CI_COMMIT_SHORT_SHA -n app-ns
-    - kubectl set image deployment/orders-service orders=$CI_REGISTRY_IMAGE/orderorders:$CI_COMMIT_SHORT_SHA -n app-ns
-    - kubectl set image deployment/frontend-gateway nginx=$CI_REGISTRY_IMAGE/ordernginx:$CI_COMMIT_SHORT_SHA -n app-ns
-    - kubectl rollout status deployment/auth-service -n app-ns --timeout=180s
-    - kubectl rollout status deployment/users-service -n app-ns --timeout=180s
-    - kubectl rollout status deployment/orders-service -n app-ns --timeout=180s
-    - kubectl rollout status deployment/frontend-gateway -n app-ns --timeout=180s
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"
-      when: manual

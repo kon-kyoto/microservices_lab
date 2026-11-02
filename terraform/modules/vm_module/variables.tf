@@ -18,7 +18,7 @@ variable "vm_memory" {
 
 variable "vm_image_id" {
   type    = string
-  default = "fd8vmcue7aajpmeo39kk"
+  default = "fd82sqrj4uk9j7vlki3q"
 }
 
 variable "vm_size" {

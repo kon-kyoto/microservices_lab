@@ -9,8 +9,8 @@ provider "registry.terraform.io/hashicorp/local" {
 }
 
 provider "registry.terraform.io/yandex-cloud/yandex" {
-  version = "0.238.0"
+  version = "0.243.0"
   hashes = [
-    "h1:YHIFbfnDa6nMQEag66HxpF+it/6jWeGEqEMh3M8l0f4=",
+    "h1:MXOUXGi2PvwL3kT4wJ2IAoDo9f5Lr8BCnZ6hgECLjnc=",
   ]
 }

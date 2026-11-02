@@ -2,3 +2,4 @@ terraform/.terraform/
 terraform/terraform.tfstat*
 test_venv
 terraform/.terraform.lock.hcl
+terraform/.terraform.lock.hcl
